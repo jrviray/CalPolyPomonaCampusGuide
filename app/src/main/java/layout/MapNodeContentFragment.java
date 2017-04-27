@@ -63,7 +63,7 @@ public class MapNodeContentFragment extends Fragment {
                 close();
             }
         });
-        FrameLayout pic = (FrameLayout) view.findViewById(R.id.image_frame);
+        FrameLayout pic = (FrameLayout) view.findViewById(R.id.fl_image_frame);
         pic.addView(sample);
 
         return view;
