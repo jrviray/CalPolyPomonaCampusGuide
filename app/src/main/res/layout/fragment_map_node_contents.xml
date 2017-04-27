@@ -1,0 +1,74 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/activity_vertical_margin"
+    tools:context="layout.MapNodeContentFragment">
+
+    <!-- TODO: Update blank fragment layout -->
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/map_node_contents_background"
+        android:paddingTop="@dimen/activity_vertical_margin">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/t_node_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/activity_vertical_margin"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Building 8"
+                android:textColor="@color/colorNodeContentText"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/t_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/activity_vertical_margin"
+                android:gravity="center"
+                android:text="Description"
+                android:textColor="@color/colorNodeContentText"
+                android:textSize="18sp" />
+
+            <Button
+                android:id="@+id/b_route"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginBottom="@dimen/activity_vertical_margin"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textColor="@color/colorNodeContentText"
+                android:text="Route" />
+
+            <Button
+                android:id="@+id/b_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_weight="1"
+                android:text="Close" />
+
+            <FrameLayout
+                android:id="@+id/image_frame"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="@dimen/activity_vertical_margin"
+                android:layout_weight=".9">
+
+            </FrameLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>
