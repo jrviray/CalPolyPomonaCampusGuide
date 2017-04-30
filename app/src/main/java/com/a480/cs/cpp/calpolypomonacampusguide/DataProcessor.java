@@ -19,7 +19,7 @@ import java.util.List;
 
 public class DataProcessor {
 
-    public List parse(InputStream inputStream) throws XmlPullParserException,IOException{
+    public static List parse(InputStream inputStream) throws XmlPullParserException,IOException{
         try{
 
             XmlPullParser parser = Xml.newPullParser();
@@ -32,7 +32,7 @@ public class DataProcessor {
         }
     }
 
-    private List readEntryList(XmlPullParser parser) throws XmlPullParserException,IOException
+    private static List readEntryList(XmlPullParser parser) throws XmlPullParserException,IOException
     {
         List entries = new ArrayList();
         while(parser.next()!=XmlPullParser.END_TAG){
@@ -45,13 +45,11 @@ public class DataProcessor {
             {
                 entries.add(readEntry(parser));
             }
-            else
-                throw new IOException("need skip");
         }
         return entries;
     }
 
-    private DataEntry readEntry(XmlPullParser parser) throws XmlPullParserException,IOException
+    private static DataEntry readEntry(XmlPullParser parser) throws XmlPullParserException,IOException
     {
         String title = null;
         String description = null;
@@ -87,7 +85,7 @@ public class DataProcessor {
         return new DataEntry(title,description,imageName,Double.parseDouble(latitude),Double.parseDouble(longitude));
     }
 
-    private String readText(XmlPullParser parser) throws IOException, XmlPullParserException {
+    static private String readText(XmlPullParser parser) throws IOException, XmlPullParserException {
         String result = "";
         if (parser.next() == XmlPullParser.TEXT) {
             result = parser.getText();

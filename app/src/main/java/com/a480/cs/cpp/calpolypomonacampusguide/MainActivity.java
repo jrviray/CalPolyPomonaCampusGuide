@@ -10,6 +10,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -30,10 +31,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //get a reference of map
        mapFragment = (MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
+        //process data from entry_data file to a list of entry
         DataProcessor dataProcessor = new DataProcessor();
         try {
             entryList = dataProcessor.parse(getResources().openRawResource(R.raw.entry_data));
@@ -48,12 +52,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-
+        //add markers on the map according to data in entryList
         for(int i=0;i<entryList.size();i++)
         {
             DataEntry thisEntry = (DataEntry) entryList.get(i);
             Marker newMarker = googleMap.addMarker(new MarkerOptions().position(thisEntry.getLocation()));
             newMarker.setTag(thisEntry);
+            newMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
         }
 
         googleMap.moveCamera(CameraUpdateFactory.zoomTo(15));
@@ -70,6 +75,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    /**
+     * Thi method will be called when a marker is clicked by user
+     * @param marker
+     */
     private void showInfoDialog(Marker marker)
     {
         DataEntry entry = (DataEntry) marker.getTag();
