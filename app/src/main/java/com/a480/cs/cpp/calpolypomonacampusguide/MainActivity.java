@@ -1,12 +1,11 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
-
-import android.app.FragmentTransaction;
-import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.FrameLayout;
-
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -15,51 +14,71 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import layout.MapNodeContentFragment;
+import org.xmlpull.v1.XmlPullParserException;
 
-public class MainActivity extends AppCompatActivity implements MapNodeContentFragment.OnFragmentInteractionListener,OnMapReadyCallback{
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-    private MapNodeContentFragment mapNodeContentFragment;
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback{
 
     private MapFragment mapFragment;
+
+    private List entryList;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
        mapFragment = (MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
-
-
+        DataProcessor dataProcessor = new DataProcessor();
+        try {
+            entryList = dataProcessor.parse(getResources().openRawResource(R.raw.entry_data));
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    @Override
-    public void onFragmentInteraction(Uri uri) {
-
-    }
-
-    private void onClickMarker(Marker node)
-    {
-        mapNodeContentFragment = MapNodeContentFragment.newInstance();
-        FragmentTransaction ft = getFragmentManager().beginTransaction();
-        ft.add(R.id.node_content_frame, mapNodeContentFragment).commit();
-    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
+
+        for(int i=0;i<entryList.size();i++)
+        {
+            DataEntry thisEntry = (DataEntry) entryList.get(i);
+            Marker newMarker = googleMap.addMarker(new MarkerOptions().position(thisEntry.getLocation()));
+            newMarker.setTag(thisEntry);
+        }
+
         googleMap.moveCamera(CameraUpdateFactory.zoomTo(15));
         LatLng building_eight = new LatLng(34.058378, -117.825395);
-        googleMap.addMarker(new MarkerOptions().position(building_eight));
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(building_eight));
+
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                onClickMarker(marker);
+                showInfoDialog(marker);
                 return false;
             }
         });
 
+    }
+
+    private void showInfoDialog(Marker marker)
+    {
+        DataEntry entry = (DataEntry) marker.getTag();
+        MaterialDialog infoDialog = new MaterialDialog.Builder(this).customView(R.layout.info_layout,true)
+                .title(entry.getTitle()).show();
+        View infoView = infoDialog.getCustomView();
+        TextView description = (TextView)infoView.findViewById(R.id.tv_entry_description);
+        description.setText(entry.getDescription());
+        ImageView image = (ImageView)infoView.findViewById(R.id.iv_entry_image);
+        image.setImageResource(getResources().getIdentifier(entry.getImageName(),"mipmap",getPackageName()));
     }
 }
