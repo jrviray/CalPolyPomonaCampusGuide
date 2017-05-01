@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private List entryList;
 
-    private GoogleApiClient locationGoogleApiClient;
+    private GoogleApiClient googleApiClient;
 
     private LocationRequest locationRequest;
 
@@ -62,10 +62,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
-        if (locationGoogleApiClient == null) {
-            locationGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(LocationServices.API).build();
+        //create a
+        if (googleApiClient == null) {
+            googleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(LocationServices.API).build();
         }
-        locationGoogleApiClient.connect();
+        googleApiClient.connect();
 
         //process data from entry_data file to a list of entry
         DataProcessor dataProcessor = new DataProcessor();
@@ -83,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
 
         map = googleMap;
+        //when a map is ready, always centers Cap Poly Pomona
         map.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(34.056514, -117.821452)));
         //check for permission
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -96,8 +98,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.getUiSettings().setCompassEnabled(true);
         map.getUiSettings().setZoomControlsEnabled(true);
 
-        List newList = new ArrayList();
+
         //add markers on the map according to data in entryList
+        List newList = new ArrayList();
         for (int i = 0; i < entryList.size(); i++) {
             DataEntry thisEntry = (DataEntry) entryList.get(i);
             Marker newMarker = googleMap.addMarker(new MarkerOptions().position(thisEntry.getLocation()));
@@ -137,12 +140,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
     }
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
 
+        //create a location request
         locationRequest = new LocationRequest();
         locationRequest.setInterval(1000);
         locationRequest.setFastestInterval(1000);
@@ -154,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         LOCATION_PERMISSION_CODE);
             }
             else {
-                LocationServices.FusedLocationApi.requestLocationUpdates(locationGoogleApiClient, locationRequest, this);
+                LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
             }
 
     }
@@ -165,11 +168,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onLocationChanged(Location location) {
-            curLocation =location;
+            curLocation =location;  //update current location
     }
 
     /**
-     * This method is used to update the camera to the current location
+     * This method is used to update the camera to center to current location
      */
     private void updateLocationOnMap()
     {
@@ -182,16 +185,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         switch (requestCode) {
             case LOCATION_PERMISSION_CODE: {
                 if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {  //if the location is permitted
                     try {
-                        LocationServices.FusedLocationApi.requestLocationUpdates(locationGoogleApiClient, locationRequest, this);
+                        LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
                         map.setMyLocationEnabled(true);
                     }
                     catch (SecurityException e)
                     {
                         e.printStackTrace();
                     }
-
                 }
                 return;
             }
