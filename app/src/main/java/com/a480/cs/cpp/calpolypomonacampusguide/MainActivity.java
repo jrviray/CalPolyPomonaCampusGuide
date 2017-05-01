@@ -98,9 +98,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.getUiSettings().setCompassEnabled(true);
         map.getUiSettings().setZoomControlsEnabled(true);
 
+        map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+            @Override
+            public boolean onMyLocationButtonClick() {
+                if(curLocation!=null)
+                    updateLocationOnMap();
+                return false;
+            }
+        });
+
 
         //add markers on the map according to data in entryList
-        List newList = new ArrayList();
+        List newList = new ArrayList<>();
         for (int i = 0; i < entryList.size(); i++) {
             DataEntry thisEntry = (DataEntry) entryList.get(i);
             Marker newMarker = googleMap.addMarker(new MarkerOptions().position(thisEntry.getLocation()));
@@ -110,13 +119,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         entryList = newList;
 
-        map.moveCamera(CameraUpdateFactory.zoomTo(15));
-
-
         map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
+
                 showInfoDialog(marker);
+                map.animateCamera(CameraUpdateFactory.zoomTo(15));
                 return false;
             }
         });
@@ -176,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      */
     private void updateLocationOnMap()
     {
-        map.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(curLocation.getLatitude(),curLocation.getLongitude())));
+        map.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(curLocation.getLatitude(),curLocation.getLongitude())));
     }
 
     @Override
