@@ -39,6 +39,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         GoogleApiClient.ConnectionCallbacks,
         LocationListener {
 
+
+    static public final String GOOGLE_API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
+
+
     private final int LOCATION_PERMISSION_CODE = 1;
 
     private MapFragment mapFragment;
@@ -83,9 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Static LatLng
         LatLng startLatLng = new LatLng(34.058233,-117.825143);
         LatLng endLatLng = new LatLng(34.058667, -117.825248);
-        JSONParser json = new JSONParser();
-        String url = json.makeURL(startLatLng.latitude, startLatLng.longitude, endLatLng.latitude, endLatLng.longitude);
-        new StartAsyncTask(url).execute();
+        new StartAsyncTask(startLatLng,endLatLng).execute();
     }
 
 
