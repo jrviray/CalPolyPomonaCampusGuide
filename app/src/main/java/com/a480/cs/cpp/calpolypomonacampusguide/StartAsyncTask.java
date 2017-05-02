@@ -3,26 +3,29 @@ package com.a480.cs.cpp.calpolypomonacampusguide;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.google.android.gms.maps.model.LatLng;
+
 /**
  * Created by king on 5/1/17.
  */
 public class StartAsyncTask extends AsyncTask<Void, Void, String> {
-        String url;
+        private LatLng startPoint;
+        private LatLng endPoint;
 
-        StartAsyncTask(String urlPass) {
+        StartAsyncTask(LatLng start,LatLng end) {
             super();
-            url = urlPass;
+            startPoint=start;
+            endPoint=end;
         }
         protected String doInBackground(Void... params) {
-            JSONParser jParser = new JSONParser();
-            String json = jParser.getJSONFromUrl(url);
+             JSONParser jParser= new JSONParser();
+            String json = jParser.getJSONFromUrl(jParser.makeURL(startPoint.latitude,startPoint.longitude,endPoint.latitude,endPoint.longitude));
             return json;
         }
 
         protected void onPostExecute(String result) {
-            JSONParser jParser = new JSONParser();
-            String json = jParser.getJSONFromUrl(url);
-            Log.d("JSON", json);
+
+            Log.d("JSON", result);
             super.onPostExecute(result);
         }
 }

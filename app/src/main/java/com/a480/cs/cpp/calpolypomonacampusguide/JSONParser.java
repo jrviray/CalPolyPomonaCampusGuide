@@ -32,7 +32,7 @@ public class JSONParser {
     public String makeURL(double sourcelat, double sourcelog, double destlat,
                           double destlog) {
         StringBuilder urlString = new StringBuilder();
-        urlString.append("http://maps.googleapis.com/maps/api/directions/json");
+        urlString.append("https://maps.googleapis.com/maps/api/directions/json");
         urlString.append("?origin=");// from
         urlString.append(Double.toString(sourcelat));
         urlString.append(",");
@@ -42,7 +42,7 @@ public class JSONParser {
         urlString.append(",");
         urlString.append(Double.toString(destlog));
         urlString.append("&mode=walking&key=");
-        urlString.append(google_maps_key);
+        urlString.append(MainActivity.GOOGLE_API_KEY);
         return urlString.toString();
     }
 
