@@ -2,60 +2,41 @@ package com.a480.cs.cpp.calpolypomonacampusguide;
 
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.ImageView;
-import android.widget.TextView;
 
-import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdateFactory;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.wearable.DataEvent;
 
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
         GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
-        LocationListener {
+        LocationListener
+{
 
-
-    static public final String GOOGLE_API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
-
-
+    public static String API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
     private final int LOCATION_PERMISSION_CODE = 1;
 
-    private MapFragment mapFragment;
+    private boolean locationPermission;
 
-    private List entryList;
+    private MapController mapController;
 
     private GoogleApiClient googleApiClient;
 
     private LocationRequest locationRequest;
-
-    private Location curLocation;
-
-    private GoogleMap map;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,99 +44,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
 
         //get a reference of map
-        mapFragment = (MapFragment) getFragmentManager()
+        MapFragment mapFragment = (MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
-
-        //create a
-        if (googleApiClient == null) {
-            googleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(LocationServices.API).build();
-        }
-        googleApiClient.connect();
-
-        //process data from entry_data file to a list of entry
-        DataProcessor dataProcessor = new DataProcessor();
-        try {
-            entryList = dataProcessor.parse(getResources().openRawResource(R.raw.entry_data));
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        //get permission
+        getPermission();
         //test for the map route
         // Static LatLng
-        LatLng startLatLng = new LatLng(34.058233,-117.825143);
-        LatLng endLatLng = new LatLng(34.058667, -117.825248);
-        new StartAsyncTask(startLatLng,endLatLng).execute();
+
     }
 
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-
-        map = googleMap;
-        //when a map is ready, always centers Cap Poly Pomona
-        map.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(34.056514, -117.821452)));
-        //check for permission
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+    private void getPermission()
+    {
+        locationPermission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+        if(!locationPermission)
+        {
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_CODE);
         }
-        else
-            map.setMyLocationEnabled(true);
+    }
 
-        map.getUiSettings().setMapToolbarEnabled(false);
-        map.getUiSettings().setCompassEnabled(true);
-        map.getUiSettings().setZoomControlsEnabled(true);
-
-        map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
-            @Override
-            public boolean onMyLocationButtonClick() {
-                if(curLocation!=null)
-                    updateLocationOnMap();
-                return false;
-            }
-        });
-
-
-        //add markers on the map according to data in entryList
-        List newList = new ArrayList<>();
-        for (int i = 0; i < entryList.size(); i++) {
-            DataEntry thisEntry = (DataEntry) entryList.get(i);
-            Marker newMarker = googleMap.addMarker(new MarkerOptions().position(thisEntry.getLocation()));
-            newMarker.setTag(thisEntry);
-            newMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
-            newList.add(newMarker);
+    private void connectApiClient()
+    {
+        if (googleApiClient == null) {
+            googleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).
+                    addOnConnectionFailedListener(this).addApi(LocationServices.API).build();
         }
-        entryList = newList;
-
-        map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-
-                showInfoDialog(marker);
-                map.animateCamera(CameraUpdateFactory.zoomTo(15));
-                return false;
-            }
-        });
-
+        googleApiClient.connect();
     }
 
-    /**
-     * Thi method will be called when a marker is clicked by user
-     * @param marker
-     */
-    private void showInfoDialog(Marker marker) {
-        DataEntry entry = (DataEntry) marker.getTag();
-        MaterialDialog infoDialog = new MaterialDialog.Builder(this).customView(R.layout.info_layout, true)
-                .title(entry.getTitle()).show();
-        View infoView = infoDialog.getCustomView();
-        TextView description = (TextView) infoView.findViewById(R.id.tv_entry_description);
-        description.setText(entry.getDescription());
-        ImageView image = (ImageView) infoView.findViewById(R.id.iv_entry_image);
-        image.setImageResource(getResources().getIdentifier(entry.getImageName(), "mipmap", getPackageName()));
+    @Override
+    public void onMapReady(final GoogleMap googleMap) {
+        mapController = new MapController(googleMap,locationPermission,this);
     }
+
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
@@ -170,15 +93,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationRequest.setFastestInterval(1000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
+        getPermission();
             //check for permission
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        LOCATION_PERMISSION_CODE);
+            if (locationPermission) {
+                try {
+                    LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+                }
+                catch (SecurityException e)
+                {
+                    e.printStackTrace();
+                }
             }
-            else {
-                LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+            else
+            {
+                googleApiClient.disconnect();
             }
-
     }
 
     @Override
@@ -187,16 +116,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onLocationChanged(Location location) {
-            curLocation =location;  //update current location
+        if(mapController!=null)
+            mapController.curLocationUpdate(location);  //update current location
     }
 
-    /**
-     * This method is used to update the camera to center to current location
-     */
-    private void updateLocationOnMap()
-    {
-        map.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(curLocation.getLatitude(),curLocation.getLongitude())));
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -204,18 +127,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         switch (requestCode) {
             case LOCATION_PERMISSION_CODE: {
                 if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {  //if the location is permitted
-                    try {
-                        LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
-                        map.setMyLocationEnabled(true);
-                    }
-                    catch (SecurityException e)
-                    {
-                        e.printStackTrace();
-                    }
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                {
+                   locationPermission = true;
                 }
-                return;
+                else
+                    locationPermission = false;
             }
         }
     }
+
 }
