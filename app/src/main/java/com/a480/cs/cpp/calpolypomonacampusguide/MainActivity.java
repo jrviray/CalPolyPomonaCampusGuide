@@ -2,6 +2,7 @@ package com.a480.cs.cpp.calpolypomonacampusguide;
 
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -77,6 +78,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        //test for the map route
+        // Static LatLng
+        LatLng startLatLng = new LatLng(34.058233,-117.825143);
+        LatLng endLatLng = new LatLng(34.058667, -117.825248);
+        JSONParser json = new JSONParser();
+        String url = json.makeURL(startLatLng.latitude, startLatLng.longitude, endLatLng.latitude, endLatLng.longitude);
+        new StartAsyncTask(url).execute();
     }
 
 
