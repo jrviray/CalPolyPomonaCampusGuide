@@ -1,5 +1,7 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
+import android.content.res.Resources;
+
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONArray;
@@ -22,7 +24,6 @@ import static com.a480.cs.cpp.calpolypomonacampusguide.R.string.google_maps_key;
 
 public class JSONParser {
         InputStream is = null;
-        JSONObject jObj = null;
         String json = "";
 
         // constructor
@@ -42,7 +43,7 @@ public class JSONParser {
         urlString.append(",");
         urlString.append(Double.toString(destlog));
         urlString.append("&mode=walking&key=");
-        urlString.append(MainActivity.GOOGLE_API_KEY);
+        urlString.append(MainActivity.API_KEY);
         return urlString.toString();
     }
 

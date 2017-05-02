@@ -5,6 +5,8 @@ import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import java.util.List;
+
 /**
  * Created by king on 5/1/17.
  */
@@ -26,6 +28,7 @@ public class StartAsyncTask extends AsyncTask<Void, Void, String> {
         protected void onPostExecute(String result) {
 
             Log.d("JSON", result);
+            List polylist = new JSONParser().getList(result);
             super.onPostExecute(result);
         }
 }
