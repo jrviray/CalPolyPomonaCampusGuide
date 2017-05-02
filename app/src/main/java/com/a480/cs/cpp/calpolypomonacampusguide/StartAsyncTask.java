@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Created by king on 5/1/17.
  */
-public class StartAsyncTask extends AsyncTask<Void, Void, String> {
+public class StartAsyncTask extends AsyncTask<Void, Void, List> {
         private LatLng startPoint;
         private LatLng endPoint;
 
@@ -19,18 +19,12 @@ public class StartAsyncTask extends AsyncTask<Void, Void, String> {
             startPoint=start;
             endPoint=end;
         }
-        protected String doInBackground(Void... params) {
+        protected List doInBackground(Void... params) {
              JSONParser jParser= new JSONParser();
             String json = jParser.getJSONFromUrl(jParser.makeURL(startPoint.latitude,startPoint.longitude,endPoint.latitude,endPoint.longitude));
-            return json;
+            return jParser.getList(json);
         }
 
-        protected void onPostExecute(String result) {
-
-            Log.d("JSON", result);
-            List polylist = new JSONParser().getList(result);
-            super.onPostExecute(result);
-        }
 }
 
 

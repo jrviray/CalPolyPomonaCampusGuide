@@ -7,6 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -28,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 {
 
     public static String API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
+
     private final int LOCATION_PERMISSION_CODE = 1;
 
     private boolean locationPermission;
@@ -49,12 +51,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
         //get permission
         getPermission();
-        //test for the map route
-        // Static LatLng
+        connectApiClient();
 
     }
 
-    private void getPermission()
+    protected void getPermission()
     {
         locationPermission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;
@@ -71,7 +72,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             googleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).
                     addOnConnectionFailedListener(this).addApi(LocationServices.API).build();
         }
-        googleApiClient.connect();
+        if(!googleApiClient.isConnected())
+            googleApiClient.connect();
+
     }
 
     @Override
@@ -131,10 +134,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 {
                    locationPermission = true;
                 }
-                else
+                else {
                     locationPermission = false;
+                }
+                if(mapController!=null)
+                    mapController.setPermission(locationPermission);
             }
         }
+    }
+
+    @Override
+    public void onRestart()
+    {
+        super.onRestart();
+        getPermission();
+        Log.d("test","Test");
     }
 
 }
