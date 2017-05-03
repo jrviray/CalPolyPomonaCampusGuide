@@ -1,28 +1,28 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
-import android.graphics.Color;
+
 import android.location.Location;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.Circle;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.SphericalUtil;
 
 import org.xmlpull.v1.XmlPullParserException;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -41,25 +41,41 @@ public class MapController {
 
     private boolean isNormalMode;
 
-    private List dataEntryList;
+    private List onMap_dataEntryList;
 
     private AppCompatActivity mainActivity;
 
-    private List route;
+    private List routePoint;
 
     private CameraPosition navigationCamera;
+
+    private Polyline routeLine;
+
+    private GoogleMap.CancelableCallback cameraCallback;
+    private boolean isCameraFollowing;
 
 
     public MapController(GoogleMap map, boolean permission,AppCompatActivity mainActivity)
     {
 
         this.map = map;
-        setPermission(permission);
+        isCameraFollowing = false;
         this.mainActivity = mainActivity;
+        cameraCallback = new GoogleMap.CancelableCallback() {
+            @Override
+            public void onFinish() {
+                isCameraFollowing = true;
+            }
+
+            @Override
+            public void onCancel() {
+                isCameraFollowing = false;
+            }
+        };
+        setPermission(permission);
         map.getUiSettings().setMapToolbarEnabled(false);
-        map.getUiSettings().setZoomControlsEnabled(true);
         map.getUiSettings().setCompassEnabled(false);
-        getDataReady();
+        map.getUiSettings().setMyLocationButtonEnabled(false);
         map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
@@ -67,30 +83,43 @@ public class MapController {
                 return false;
             }
         });
-        normalMode();
+
+        map.setOnCameraMoveStartedListener(new GoogleMap.OnCameraMoveStartedListener() {
+            @Override
+            public void onCameraMoveStarted(int i) {
+                isCameraFollowing = false;
+            }
+        });
+        enterNormalMode(new LatLng(34.0565,-117.821));
     }
 
     public void setPermission(boolean permission)
     {
         locationPermission=permission;
+        FloatingActionButton myLocationButton = (FloatingActionButton) mainActivity.findViewById(R.id.b_my_location_button);
+        myLocationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (curLocation != null)
+                {
+                    if(isNormalMode)
+                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(getCurLocation(), 18),cameraCallback);
+                    else
+                        map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
+                }
+                isCameraFollowing = true;
+            }
+        });
         try{
             if(locationPermission)
             {
                     map.setMyLocationEnabled(true);
-                    map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
-                        @Override
-                        public boolean onMyLocationButtonClick() {
-                            if (curLocation != null)
-                                map.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(curLocation.getLatitude(), curLocation.getLongitude()), 18));
-                            if (!isNormalMode) {
-                                map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera));
-                            }
-                            return true;
-                        }
-                    });
-                }
-            else
+            }
+            else {
                 map.setMyLocationEnabled(false);
+                myLocationButton.setVisibility(View.GONE);
+            }
             }
             catch (SecurityException e) {
                 e.printStackTrace();
@@ -99,46 +128,54 @@ public class MapController {
 
     }
 
-    public void normalMode()
+    public void enterNormalMode(LatLng centerLatLng)
     {
+        mainActivity.findViewById(R.id.b_naviagtion_exit_button).setVisibility(View.GONE);
         isNormalMode = true;
         //when enter the normal view, always centers Cap Poly Pomona
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(34.056514, -117.821452),15));
-        filter_all();
+        CameraPosition normalCamera = new CameraPosition.Builder().target(centerLatLng).zoom(18).build();
+        if(isCameraFollowing)
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera),cameraCallback);
+        else
+            map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera));
     }
 
-    public void navigationMode(LatLng destination) throws ExecutionException, InterruptedException {
+    public void enterNavigationMode(LatLng destination) throws ExecutionException, InterruptedException {
         isNormalMode = false;
-        LatLng origin = new LatLng(curLocation.getLatitude(),curLocation.getLongitude());
+        LatLng origin = getCurLocation();
         getRoute(origin,destination);
-       navigationCamera = new CameraPosition.Builder().tilt(75).target(origin).zoom(20).build();
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera));
+        float bearing = (float) SphericalUtil.computeHeading(getCurLocation(),(LatLng)routePoint.get(1));
+       navigationCamera = new CameraPosition.Builder().target(origin).zoom(19).bearing(bearing).build();
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
+
+        FloatingActionButton exitButton = (FloatingActionButton) mainActivity.findViewById(R.id.b_naviagtion_exit_button);
+        exitButton.setVisibility(View.VISIBLE);
+        exitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                exitNavigation();
+            }
+        });
     }
 
-    private void getDataReady()
+    private void exitNavigation()
     {
-        //process data from entry_data file to a list of entry
-        DataProcessor dataProcessor = new DataProcessor();
-        try {
-            dataEntryList = dataProcessor.parse(mainActivity.getResources().openRawResource(R.raw.entry_data));
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        routeLine.remove();
+        routeLine=null;
+        routePoint=null;
+        enterNormalMode(getCurLocation());
     }
+
+
 
     private void getRoute(LatLng start,LatLng destination) throws ExecutionException, InterruptedException {
-        route =  new StartAsyncTask(start,destination).execute().get();
+        routePoint =  new StartAsyncTask(start,destination).execute().get();
     }
 
-    private void filter_all()
-    {
-        addMarkersToMap(dataEntryList);
-    }
 
-    private void addMarkersToMap(List after_filter_list)
+    public void addMarkersToMap(List after_filter_list)
     {
+        onMap_dataEntryList = after_filter_list;
         for(int i=0;i<after_filter_list.size();i++)
         {
             DataEntry thisEntry = (DataEntry) after_filter_list.get(i);
@@ -150,28 +187,45 @@ public class MapController {
     }
 
 
+    private void realTimeRouting()
+    {
+        if(routePoint!=null)
+        {
+            if(routeLine==null)
+            {
+                routeLine = map.addPolyline(new PolylineOptions().addAll(routePoint));
+                routeLine.setColor(R.color.polyline);
+                routeLine.setWidth(25);
 
-    private Polyline routeLine;
-    private Circle userLocationCircle;
+
+
+
+
+            }
+            else
+            {
+                //update animation
+            }
+
+
+        }
+    }
+
+
 
     public void curLocationUpdate(Location newLocation)
     {
-
-
-        if(isNormalMode)
         curLocation = newLocation;
+        if(isNormalMode)
+        {
+            if(isCameraFollowing)
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(getCurLocation(), 18),cameraCallback);
+        }
 
         //navigation animation
         else
         {
-            if(route!=null)
-            {
-                if(routeLine!=null)
-                {
-                    routeLine.remove();
-                }
-                routeLine = map.addPolyline(new PolylineOptions().addAll(route));
-            }
+            realTimeRouting();
         }
     }
 
@@ -193,9 +247,9 @@ public class MapController {
         routeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(locationPermission) {
+                if(locationPermission && curLocation!=null) {
                     try {
-                        navigationMode(entry.getLocation());
+                        enterNavigationMode(entry.getLocation());
                         infoDialog.cancel();
                     } catch (ExecutionException e) {
                         e.printStackTrace();
@@ -206,5 +260,14 @@ public class MapController {
             }
         });
     }
+
+    public LatLng getCurLocation()
+    {
+        if(curLocation==null)
+            return null;
+        else
+        return new LatLng(curLocation.getLatitude(),curLocation.getLongitude());
+    }
+
 
 }

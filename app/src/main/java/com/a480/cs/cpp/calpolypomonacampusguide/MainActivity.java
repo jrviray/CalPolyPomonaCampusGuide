@@ -21,6 +21,11 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.IOException;
+import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
         GoogleApiClient.OnConnectionFailedListener,
@@ -40,6 +45,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private LocationRequest locationRequest;
 
+    private List all_dataEntryList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,10 +58,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
         //get permission
         getPermission();
+        getDataReady();
         connectApiClient();
 
     }
 
+    /**
+     * This method is used to check and grant location permission from the user
+     */
     protected void getPermission()
     {
         locationPermission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
@@ -66,6 +77,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * This method is used to connect google api client in order to use gps location
+     */
     private void connectApiClient()
     {
         if (googleApiClient == null) {
@@ -80,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(final GoogleMap googleMap) {
         mapController = new MapController(googleMap,locationPermission,this);
+        mapController.addMarkersToMap(all_dataEntryList);
     }
 
 
@@ -120,7 +135,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onLocationChanged(Location location) {
         if(mapController!=null)
-            mapController.curLocationUpdate(location);  //update current location
+            mapController.curLocationUpdate(location);  //update current location in the map
+
     }
 
 
@@ -143,12 +159,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    private void getDataReady()
+    {
+        //process data from entry_data file to a list of entry
+        DataProcessor dataProcessor = new DataProcessor();
+        try {
+            all_dataEntryList = dataProcessor.parse(getResources().openRawResource(R.raw.entry_data));
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onRestart()
     {
         super.onRestart();
         getPermission();
-        Log.d("test","Test");
     }
 
 }
