@@ -24,6 +24,7 @@ import com.google.maps.android.SphericalUtil;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -43,15 +44,20 @@ public class MapController {
 
     private List onMap_dataEntryList;
 
+    private List onMap_markerList;
+
     private AppCompatActivity mainActivity;
 
     private List routePoint;
 
     private CameraPosition navigationCamera;
 
+    private CameraPosition normalCamera;
+
     private Polyline routeLine;
 
     private GoogleMap.CancelableCallback cameraCallback;
+
     private boolean isCameraFollowing;
 
 
@@ -104,7 +110,7 @@ public class MapController {
                 if (curLocation != null)
                 {
                     if(isNormalMode)
-                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(getCurLocation(), 18),cameraCallback);
+                        map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera),cameraCallback);
                     else
                         map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
                 }
@@ -124,8 +130,6 @@ public class MapController {
             catch (SecurityException e) {
                 e.printStackTrace();
             }
-
-
     }
 
     public void enterNormalMode(LatLng centerLatLng)
@@ -133,21 +137,15 @@ public class MapController {
         mainActivity.findViewById(R.id.b_naviagtion_exit_button).setVisibility(View.GONE);
         isNormalMode = true;
         //when enter the normal view, always centers Cap Poly Pomona
-        CameraPosition normalCamera = new CameraPosition.Builder().target(centerLatLng).zoom(18).build();
-        if(isCameraFollowing)
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera),cameraCallback);
-        else
-            map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera));
+        if(curLocation==null)
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(34.0565284,-117.8215295),18));
     }
 
     public void enterNavigationMode(LatLng destination) throws ExecutionException, InterruptedException {
+        removeMarkersFromMap();
         isNormalMode = false;
         LatLng origin = getCurLocation();
         getRoute(origin,destination);
-        float bearing = (float) SphericalUtil.computeHeading(getCurLocation(),(LatLng)routePoint.get(1));
-       navigationCamera = new CameraPosition.Builder().target(origin).zoom(19).bearing(bearing).build();
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
-
         FloatingActionButton exitButton = (FloatingActionButton) mainActivity.findViewById(R.id.b_naviagtion_exit_button);
         exitButton.setVisibility(View.VISIBLE);
         exitButton.setOnClickListener(new View.OnClickListener() {
@@ -163,7 +161,9 @@ public class MapController {
         routeLine.remove();
         routeLine=null;
         routePoint=null;
+        navigationCamera=null;
         enterNormalMode(getCurLocation());
+        changeMarkersOnMap(onMap_dataEntryList);
     }
 
 
@@ -173,16 +173,31 @@ public class MapController {
     }
 
 
-    public void addMarkersToMap(List after_filter_list)
+    public void changeMarkersOnMap(List after_filter_list)
     {
+        removeMarkersFromMap();
         onMap_dataEntryList = after_filter_list;
-        for(int i=0;i<after_filter_list.size();i++)
-        {
-            DataEntry thisEntry = (DataEntry) after_filter_list.get(i);
-            Marker newMarker = map.addMarker(new MarkerOptions().position(thisEntry.getLocation()));
-            newMarker.setTag(thisEntry);
-            newMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
 
+        if(after_filter_list!=null) {
+            onMap_markerList = new ArrayList();
+            for (int i = 0; i < after_filter_list.size(); i++) {
+                DataEntry thisEntry = (DataEntry) after_filter_list.get(i);
+                Marker newMarker = map.addMarker(new MarkerOptions().position(thisEntry.getLocation()).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                newMarker.setTag(thisEntry);
+                onMap_markerList.add(newMarker);
+            }
+        }
+    }
+
+    private void removeMarkersFromMap()
+    {
+        if(onMap_markerList!=null)
+        {
+            for(int i=0;i<onMap_markerList.size();i++)
+            {
+                Marker thisMarker = (Marker)onMap_markerList.get(i);
+                thisMarker.remove();
+            }
         }
     }
 
@@ -195,7 +210,7 @@ public class MapController {
             {
                 routeLine = map.addPolyline(new PolylineOptions().addAll(routePoint));
                 routeLine.setColor(R.color.polyline);
-                routeLine.setWidth(25);
+                routeLine.setWidth(20);
 
 
 
@@ -218,13 +233,26 @@ public class MapController {
         curLocation = newLocation;
         if(isNormalMode)
         {
+            normalCamera = new CameraPosition.Builder().target(getCurLocation()).zoom(18).build();
             if(isCameraFollowing)
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(getCurLocation(), 18),cameraCallback);
+                map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera),cameraCallback);
         }
 
         //navigation animation
         else
         {
+            float bearing;
+            if(routePoint!=null)
+            {
+                bearing = (float) SphericalUtil.computeHeading((LatLng)routePoint.get(0),(LatLng)routePoint.get(1));
+                boolean justEnterNavigation = navigationCamera == null;
+                navigationCamera = new CameraPosition.Builder().target(getCurLocation()).zoom(19).bearing(bearing).build();
+
+                if(justEnterNavigation || isCameraFollowing)
+                {
+                    map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
+                }
+            }
             realTimeRouting();
         }
     }
