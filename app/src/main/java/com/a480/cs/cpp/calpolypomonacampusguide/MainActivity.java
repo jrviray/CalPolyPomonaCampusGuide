@@ -1,15 +1,20 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.GoogleApiActivity;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
@@ -50,16 +55,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        //get a reference of map
-        MapFragment mapFragment = (MapFragment) getFragmentManager()
-                .findFragmentById(R.id.map_fragment);
-        mapFragment.getMapAsync(this);
-        //get permission
-        getPermission();
-        getDataReady();
-        connectApiClient();
+        final int googlePlayServiceCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
+        if(googlePlayServiceCode!=ConnectionResult.SUCCESS)
+        {
+            new AlertDialog.Builder(this).setMessage("Google Play Service Error: "+
+                    GoogleApiAvailability.getInstance().getErrorString(googlePlayServiceCode)).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    System.exit(googlePlayServiceCode);
+                }
+            }).setCancelable(false).show();
+        }
+        else {
+            setContentView(R.layout.activity_main);
+
+            //get a reference of map
+            MapFragment mapFragment = (MapFragment) getFragmentManager()
+                    .findFragmentById(R.id.map_fragment);
+            mapFragment.getMapAsync(this);
+            //get permission
+            getPermission();
+            getDataReady();
+            connectApiClient();
+        }
 
     }
 
@@ -94,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(final GoogleMap googleMap) {
         mapController = new MapController(googleMap,locationPermission,this);
-        mapController.addMarkersToMap(all_dataEntryList);
+        mapController.changeMarkersOnMap(all_dataEntryList);
     }
 
 
