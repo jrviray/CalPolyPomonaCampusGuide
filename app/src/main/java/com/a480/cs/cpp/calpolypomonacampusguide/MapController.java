@@ -1,9 +1,12 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
 
+import android.graphics.Color;
 import android.location.Location;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -208,10 +211,8 @@ public class MapController {
         {
             if(routeLine==null)
             {
-                routeLine = map.addPolyline(new PolylineOptions().addAll(routePoint));
-                routeLine.setColor(R.color.polyline);
-                routeLine.setWidth(20);
-
+                PolylineOptions newLine = new PolylineOptions().addAll(routePoint).color(ResourcesCompat.getColor(mainActivity.getResources(),R.color.polyline,null)).width(20);
+                routeLine = map.addPolyline(newLine);
 
 
 
