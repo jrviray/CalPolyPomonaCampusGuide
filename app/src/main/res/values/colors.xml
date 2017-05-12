@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="accent_material_light">#00963f</color>
-    <color name="polyline">#2e9bca</color>
+    <color name="text_color">#403e3e</color>
 </resources>

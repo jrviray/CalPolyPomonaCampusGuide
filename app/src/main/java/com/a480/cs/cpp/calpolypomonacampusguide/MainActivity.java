@@ -5,16 +5,15 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.GoogleApiActivity;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
@@ -24,13 +23,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 
-import com.google.android.gms.maps.model.LatLng;
-
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.IOException;
-import java.util.List;
-
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
         GoogleApiClient.OnConnectionFailedListener,
@@ -39,6 +31,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 {
 
     public static String API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
+
+    private final int LOCATION_TIME_INTERVAL = 1000;
 
     private final int LOCATION_PERMISSION_CODE = 1;
 
@@ -50,13 +44,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private LocationRequest locationRequest;
 
-    private List all_dataEntryList;
+    private DBController databaseController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        //check google play service
         final int googlePlayServiceCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
+        //google play service is not available
         if(googlePlayServiceCode!=ConnectionResult.SUCCESS)
         {
             new AlertDialog.Builder(this).setMessage("Google Play Service Error: "+
@@ -67,16 +63,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }).setCancelable(false).show();
         }
+        //google play service is available, app starts
         else {
             setContentView(R.layout.activity_main);
 
+            DatabaseHelper database = new DatabaseHelper(this);
+            databaseController = new DBController(database.getReadableDatabase(),database.getWritableDatabase());
             //get a reference of map
             MapFragment mapFragment = (MapFragment) getFragmentManager()
                     .findFragmentById(R.id.map_fragment);
             mapFragment.getMapAsync(this);
             //get permission
             getPermission();
-            getDataReady();
             connectApiClient();
         }
 
@@ -112,8 +110,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
-        mapController = new MapController(googleMap,locationPermission,this);
-        mapController.changeMarkersOnMap(all_dataEntryList);
+        mapController = new MapController(this,googleMap,locationPermission,(
+                FloatingActionButton)findViewById(R.id.b_my_location_button),(FloatingActionButton)findViewById(R.id.b_naviagtion_exit_button));
+        mapController.changeMarkersOnMap(databaseController.getAll());
     }
 
 
@@ -126,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //create a location request
         locationRequest = new LocationRequest();
-        locationRequest.setInterval(1000);
-        locationRequest.setFastestInterval(1000);
+        locationRequest.setInterval(LOCATION_TIME_INTERVAL);
+        locationRequest.setFastestInterval(LOCATION_TIME_INTERVAL);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         getPermission();
@@ -140,10 +139,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 {
                     e.printStackTrace();
                 }
-            }
-            else
-            {
-                googleApiClient.disconnect();
             }
     }
 
@@ -168,6 +163,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 {
                    locationPermission = true;
+                    try {
+                        LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, this);
+                    }
+                    catch (SecurityException e)
+                    {
+                        e.printStackTrace();
+                    }
+
                 }
                 else {
                     locationPermission = false;
@@ -178,18 +181,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void getDataReady()
-    {
-        //process data from entry_data file to a list of entry
-        DataProcessor dataProcessor = new DataProcessor();
-        try {
-            all_dataEntryList = dataProcessor.parse(getResources().openRawResource(R.raw.entry_data));
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void onRestart()
