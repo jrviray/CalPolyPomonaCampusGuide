@@ -25,4 +25,31 @@
 
     </SearchView>
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/b_naviagtion_exit_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignStart="@+id/b_my_location_button"
+        android:layout_marginBottom="16dp"
+        android:layout_marginRight="@dimen/activity_horizontal_margin"
+        android:clickable="true"
+        app:elevation="10dp"
+        app:fabSize="normal"
+        app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/b_my_location_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/searchView"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="@dimen/activity_horizontal_margin"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        app:elevation="10dp"
+        app:fabSize="normal"
+        app:srcCompat="@android:drawable/ic_menu_mylocation" />
+
 </RelativeLayout>
