@@ -1,15 +1,15 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
 
-import android.graphics.Color;
 import android.location.Location;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.afollestad.materialdialogs.MaterialDialog;
@@ -24,9 +24,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.SphericalUtil;
 
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -37,50 +34,42 @@ import java.util.concurrent.ExecutionException;
 
 public class MapController {
 
+    private enum MODE {NORMAL,NAVIGATION};
+
      private GoogleMap map;
 
     private boolean locationPermission;
 
     private Location curLocation;
 
-    private boolean isNormalMode;
+    private MODE mode;
 
-    private List onMap_dataEntryList;
+    private FloatingActionButton myLocationButton;
 
-    private List onMap_markerList;
+    private FloatingActionButton navigationExitButton;
+
+    private List<Marker> onMap_markerList;
 
     private AppCompatActivity mainActivity;
-
-    private List routePoint;
 
     private CameraPosition navigationCamera;
 
     private CameraPosition normalCamera;
 
-    private Polyline routeLine;
-
-    private GoogleMap.CancelableCallback cameraCallback;
+    private MapNavigator navigator;
 
     private boolean isCameraFollowing;
 
+    private List<PoI> cache_PoIList;
 
-    public MapController(GoogleMap map, boolean permission,AppCompatActivity mainActivity)
+    public MapController(AppCompatActivity mainActivity,GoogleMap map, boolean permission,FloatingActionButton myLocButton,FloatingActionButton exitButton)
     {
 
         this.map = map;
         isCameraFollowing = false;
         this.mainActivity = mainActivity;
-        cameraCallback = new GoogleMap.CancelableCallback() {
-            @Override
-            public void onFinish() {
-                isCameraFollowing = true;
-            }
-
-            @Override
-            public void onCancel() {
-                isCameraFollowing = false;
-            }
-        };
+        myLocationButton = myLocButton;
+        navigationExitButton = exitButton;
         setPermission(permission);
         map.getUiSettings().setMapToolbarEnabled(false);
         map.getUiSettings().setCompassEnabled(false);
@@ -92,38 +81,72 @@ public class MapController {
                 return false;
             }
         });
-
         map.setOnCameraMoveStartedListener(new GoogleMap.OnCameraMoveStartedListener() {
             @Override
             public void onCameraMoveStarted(int i) {
                 isCameraFollowing = false;
             }
         });
-        enterNormalMode(new LatLng(34.0565,-117.821));
+        enterNormalMode();
     }
 
-    public void setPermission(boolean permission)
+    /**
+     * This method is used to setup the listener on my location button
+     */
+    private void setupMyLocationButton()
     {
-        locationPermission=permission;
-        FloatingActionButton myLocationButton = (FloatingActionButton) mainActivity.findViewById(R.id.b_my_location_button);
         myLocationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                if (curLocation != null)
-                {
-                    if(isNormalMode)
-                        map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera),cameraCallback);
-                    else
-                        map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
+                if (curLocation != null) {
+                    if (mode == MODE.NORMAL)
+                       moveCamera(normalCamera);
+                    else {
+                        if(navigationCamera!=null)
+                        moveCamera(navigationCamera);
+                    }
                 }
                 isCameraFollowing = true;
             }
         });
+    }
+
+    /**
+     * This method is used to move the camera to a certain position
+     * @param cameraPosition
+     */
+    private void moveCamera(CameraPosition cameraPosition)
+    {
+        GoogleMap.CancelableCallback cameraCallbackControl = new GoogleMap.CancelableCallback() {
+            @Override
+            public void onFinish() {
+                isCameraFollowing = true;
+            }
+
+            @Override
+            public void onCancel() {
+                isCameraFollowing = false;
+            }
+        };
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), cameraCallbackControl);
+    }
+
+    /**
+     * This method is used to set the location permission, if permitted, my location button will be set up
+     * and display; otherwise, it will not show on the screen
+     * @param permission
+     */
+    public void setPermission(boolean permission)
+    {
+        locationPermission=permission;
+
         try{
             if(locationPermission)
             {
-                    map.setMyLocationEnabled(true);
+                map.setMyLocationEnabled(true);
+                myLocationButton.setVisibility(View.VISIBLE);
+                setupMyLocationButton();
             }
             else {
                 map.setMyLocationEnabled(false);
@@ -135,58 +158,67 @@ public class MapController {
             }
     }
 
-    public void enterNormalMode(LatLng centerLatLng)
+
+    /**
+     * Calling this method, the map will enter to the normal mode
+     */
+    private void enterNormalMode()
     {
-        mainActivity.findViewById(R.id.b_naviagtion_exit_button).setVisibility(View.GONE);
-        isNormalMode = true;
-        //when enter the normal view, always centers Cap Poly Pomona
+        navigationExitButton.setVisibility(View.GONE);
+        mode = MODE.NORMAL;
+
+        //if there is no current position available, point to the center of cal poly pomona
         if(curLocation==null)
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(34.0565284,-117.8215295),18));
+
     }
 
+    /**
+     * Calling this method the map will enter to navigation mode
+     * @param destination
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     public void enterNavigationMode(LatLng destination) throws ExecutionException, InterruptedException {
         removeMarkersFromMap();
-        isNormalMode = false;
-        LatLng origin = getCurLocation();
-        getRoute(origin,destination);
-        FloatingActionButton exitButton = (FloatingActionButton) mainActivity.findViewById(R.id.b_naviagtion_exit_button);
-        exitButton.setVisibility(View.VISIBLE);
-        exitButton.setOnClickListener(new View.OnClickListener() {
+        mode = MODE.NAVIGATION;
+        navigator = new MapNavigator(map,getCurLocation(),destination);
+        navigationExitButton.setVisibility(View.VISIBLE);
+        navigationExitButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                exitNavigation();
+                exitNavigationMode();
             }
         });
     }
 
-    private void exitNavigation()
+    /**
+     * Calling the method the map will exit the navigation and enter normal mode
+     */
+    private void exitNavigationMode()
     {
-        routeLine.remove();
-        routeLine=null;
-        routePoint=null;
+        navigator.exit();
+        navigator=null;
         navigationCamera=null;
-        enterNormalMode(getCurLocation());
-        changeMarkersOnMap(onMap_dataEntryList);
+        changeMarkersOnMap(cache_PoIList);
+        enterNormalMode();
     }
 
 
 
-    private void getRoute(LatLng start,LatLng destination) throws ExecutionException, InterruptedException {
-        routePoint =  new StartAsyncTask(start,destination).execute().get();
-    }
 
 
-    public void changeMarkersOnMap(List after_filter_list)
+    public void changeMarkersOnMap(List<PoI> filtered_list)
     {
         removeMarkersFromMap();
-        onMap_dataEntryList = after_filter_list;
 
-        if(after_filter_list!=null) {
+        if(filtered_list!=null) {
+            cache_PoIList = filtered_list;
             onMap_markerList = new ArrayList();
-            for (int i = 0; i < after_filter_list.size(); i++) {
-                DataEntry thisEntry = (DataEntry) after_filter_list.get(i);
-                Marker newMarker = map.addMarker(new MarkerOptions().position(thisEntry.getLocation()).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-                newMarker.setTag(thisEntry);
+            for (int i = 0; i < filtered_list.size(); i++) {
+                PoI thisPoI = filtered_list.get(i);
+                Marker newMarker = map.addMarker(new MarkerOptions().position(thisPoI.getLocation()).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                newMarker.setTag(thisPoI);
                 onMap_markerList.add(newMarker);
             }
         }
@@ -205,56 +237,39 @@ public class MapController {
     }
 
 
-    private void realTimeRouting()
-    {
-        if(routePoint!=null)
-        {
-            if(routeLine==null)
-            {
-                PolylineOptions newLine = new PolylineOptions().addAll(routePoint).color(ResourcesCompat.getColor(mainActivity.getResources(),R.color.polyline,null)).width(20);
-                routeLine = map.addPolyline(newLine);
-
-
-
-
-            }
-            else
-            {
-                //update animation
-            }
-
-
-        }
-    }
-
 
 
     public void curLocationUpdate(Location newLocation)
     {
+        //update the current location
         curLocation = newLocation;
-        if(isNormalMode)
+
+        //update the normal camera
+        if(mode ==MODE.NORMAL)
         {
             normalCamera = new CameraPosition.Builder().target(getCurLocation()).zoom(18).build();
             if(isCameraFollowing)
-                map.animateCamera(CameraUpdateFactory.newCameraPosition(normalCamera),cameraCallback);
+                moveCamera(normalCamera);
         }
 
-        //navigation animation
+        //update the navigation camera and update the navigator
         else
         {
-            float bearing;
-            if(routePoint!=null)
+            if(navigator!=null)
             {
-                bearing = (float) SphericalUtil.computeHeading((LatLng)routePoint.get(0),(LatLng)routePoint.get(1));
-                boolean justEnterNavigation = navigationCamera == null;
-                navigationCamera = new CameraPosition.Builder().target(getCurLocation()).zoom(19).bearing(bearing).build();
-
+                //update the navigator with new location and check whether the destination arrived
+                boolean arrive_dest = navigator.updateCurLocation(getCurLocation());
+                if(arrive_dest) {
+                    exitNavigationMode();
+                    return;
+                }
+                boolean justEnterNavigation = (navigationCamera == null);
+                navigationCamera = navigator.getNavigationCamera(getCurLocation());
                 if(justEnterNavigation || isCameraFollowing)
                 {
-                    map.animateCamera(CameraUpdateFactory.newCameraPosition(navigationCamera),cameraCallback);
+                    moveCamera(navigationCamera);
                 }
             }
-            realTimeRouting();
         }
     }
 
@@ -263,22 +278,67 @@ public class MapController {
      * @param marker
      */
     private void showInfoDialog(Marker marker) {
-        final DataEntry entry = (DataEntry) marker.getTag();
-        final MaterialDialog infoDialog = new MaterialDialog.Builder(mainActivity).customView(R.layout.info_layout, true)
-                .title(entry.getTitle()).show();
-        View infoView = infoDialog.getCustomView();
-        TextView description = (TextView) infoView.findViewById(R.id.tv_entry_description);
-        description.setText(entry.getDescription());
-        ImageView image = (ImageView) infoView.findViewById(R.id.iv_entry_image);
-        image.setImageResource(mainActivity.getResources().getIdentifier(entry.getImageName(), "mipmap",mainActivity.getPackageName()));
+        final PoI thisPoI = (PoI) marker.getTag();
+        String title=null;
+        String description=null;
+        boolean hasRestroom = false;
+        boolean hasFood = false;
+        String[] sub_division = null;
+        String optional_name = null;
 
+        if(thisPoI instanceof Building)
+        {
+            title = "Building "+((Building) thisPoI).getBuildingNum();
+            description = thisPoI.getDescription();
+            hasRestroom=((Building) thisPoI).hasRestroom();
+            hasFood=((Building) thisPoI).hasFood();
+            optional_name=((Building) thisPoI).getOptionalName();
+            sub_division=((Building) thisPoI).getSubdivision();
+        }
+
+        final MaterialDialog infoDialog = new MaterialDialog.Builder(mainActivity).customView(R.layout.info_layout, true)
+                .title(title).show();
+        View infoView = infoDialog.getCustomView();
+
+        //load description
+        TextView tv_description = (TextView) infoView.findViewById(R.id.tv_entry_description);
+        tv_description.setText(description);
+        //load image
+        ImageView iv_image = (ImageView) infoView.findViewById(R.id.iv_poi_image);
+        iv_image.setImageResource(mainActivity.getResources().getIdentifier(thisPoI.getImageName(), "mipmap",mainActivity.getPackageName()));
+        //load optional name
+        TextView tv_optional_name  = (TextView)infoView.findViewById(R.id.tv_optional_name);
+        if(optional_name!=null)
+            tv_optional_name.setText(optional_name);
+        else
+            tv_optional_name.setVisibility(View.GONE);
+        //setup restroom icon
+        ImageView iv_restroom = (ImageView) infoView.findViewById(R.id.iv_restroom);
+        if(!hasRestroom)
+            iv_restroom.setVisibility(View.GONE);
+        //setup food icon
+        ImageView iv_food = (ImageView) infoView.findViewById(R.id.iv_food);
+        if(!hasFood)
+            iv_food.setVisibility(View.GONE);
+        //setup subdivision
+        ListView lv_subdivision = (ListView) infoView.findViewById(R.id.lv_sub_division_list);
+        if(sub_division!=null)
+        {
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(mainActivity,android.R.layout.simple_list_item_1,sub_division);
+            lv_subdivision.setAdapter(adapter);
+        }
+        else
+            lv_subdivision.setVisibility(View.GONE);
+
+        //setup route button
         Button routeButton = (Button) infoView.findViewById(R.id.b_route_button);
         routeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(locationPermission && curLocation!=null) {
                     try {
-                        enterNavigationMode(entry.getLocation());
+                        enterNavigationMode(thisPoI.getLocation());
                         infoDialog.cancel();
                     } catch (ExecutionException e) {
                         e.printStackTrace();
