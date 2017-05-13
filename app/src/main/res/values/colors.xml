@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="accent_material_light">#00963f</color>
+    <color name="primary">#00963f</color>
     <color name="text_color">#403e3e</color>
+    <color name="tool_bar">#66bb6a</color>
+    <color name="header_title">#1b1f6b</color>
+    <color name="drawer_icon">#ff5722</color>
 </resources>

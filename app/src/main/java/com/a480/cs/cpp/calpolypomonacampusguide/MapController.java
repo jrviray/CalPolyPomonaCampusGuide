@@ -2,6 +2,7 @@ package com.a480.cs.cpp.calpolypomonacampusguide;
 
 
 import android.location.Location;
+import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -11,8 +12,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.github.paolorotolo.expandableheightlistview.ExpandableHeightListView;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -24,6 +27,7 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.SphericalUtil;
 
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -34,7 +38,7 @@ import java.util.concurrent.ExecutionException;
 
 public class MapController {
 
-    private enum MODE {NORMAL,NAVIGATION};
+    protected enum MODE {NORMAL,NAVIGATION};
 
      private GoogleMap map;
 
@@ -62,7 +66,9 @@ public class MapController {
 
     private List<PoI> cache_PoIList;
 
-    public MapController(AppCompatActivity mainActivity,GoogleMap map, boolean permission,FloatingActionButton myLocButton,FloatingActionButton exitButton)
+    private MapModeListener modeListener;
+
+    public MapController(AppCompatActivity mainActivity,GoogleMap map, boolean permission,FloatingActionButton myLocButton,FloatingActionButton exitButton,MapModeListener listener)
     {
 
         this.map = map;
@@ -70,6 +76,7 @@ public class MapController {
         this.mainActivity = mainActivity;
         myLocationButton = myLocButton;
         navigationExitButton = exitButton;
+        this.modeListener = listener;
         setPermission(permission);
         map.getUiSettings().setMapToolbarEnabled(false);
         map.getUiSettings().setCompassEnabled(false);
@@ -89,6 +96,8 @@ public class MapController {
         });
         enterNormalMode();
     }
+
+
 
     /**
      * This method is used to setup the listener on my location button
@@ -158,6 +167,11 @@ public class MapController {
             }
     }
 
+    private void changeMode(MODE newMode)
+    {
+        mode = newMode;
+        modeListener.onModeChange(newMode);
+    }
 
     /**
      * Calling this method, the map will enter to the normal mode
@@ -165,7 +179,9 @@ public class MapController {
     private void enterNormalMode()
     {
         navigationExitButton.setVisibility(View.GONE);
-        mode = MODE.NORMAL;
+        changeMode(MODE.NORMAL);
+
+        ((MainActivity)mainActivity).enableDrawer();
 
         //if there is no current position available, point to the center of cal poly pomona
         if(curLocation==null)
@@ -180,16 +196,23 @@ public class MapController {
      * @throws InterruptedException
      */
     public void enterNavigationMode(LatLng destination) throws ExecutionException, InterruptedException {
-        removeMarkersFromMap();
-        mode = MODE.NAVIGATION;
-        navigator = new MapNavigator(map,getCurLocation(),destination);
-        navigationExitButton.setVisibility(View.VISIBLE);
-        navigationExitButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                exitNavigationMode();
-            }
-        });
+
+        try {
+            navigator = new MapNavigator(map, getCurLocation(), destination);
+        }
+        catch (SocketTimeoutException e) {
+            failConnection();
+            return;
+        }
+            removeMarkersFromMap();
+            changeMode(MODE.NAVIGATION);
+            navigationExitButton.setVisibility(View.VISIBLE);
+            navigationExitButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    exitNavigationMode();
+                }
+            });
     }
 
     /**
@@ -197,11 +220,19 @@ public class MapController {
      */
     private void exitNavigationMode()
     {
-        navigator.exit();
+        if(navigator!=null)
+            navigator.exit();
+
         navigator=null;
         navigationCamera=null;
         changeMarkersOnMap(cache_PoIList);
         enterNormalMode();
+    }
+
+    private void failConnection()
+    {
+        Toast.makeText(mainActivity,"Connection failed!", Toast.LENGTH_LONG).show();
+        exitNavigationMode();
     }
 
 
@@ -258,7 +289,14 @@ public class MapController {
             if(navigator!=null)
             {
                 //update the navigator with new location and check whether the destination arrived
-                boolean arrive_dest = navigator.updateCurLocation(getCurLocation());
+                boolean arrive_dest;
+                try {
+                    arrive_dest = navigator.updateCurLocation(getCurLocation());
+                } catch (SocketTimeoutException e) {
+                    //connection fail
+                    failConnection();
+                    return;
+                }
                 if(arrive_dest) {
                     exitNavigationMode();
                     return;
@@ -305,7 +343,7 @@ public class MapController {
         tv_description.setText(description);
         //load image
         ImageView iv_image = (ImageView) infoView.findViewById(R.id.iv_poi_image);
-        iv_image.setImageResource(mainActivity.getResources().getIdentifier(thisPoI.getImageName(), "mipmap",mainActivity.getPackageName()));
+        iv_image.setImageResource(mainActivity.getResources().getIdentifier(thisPoI.getImageName(), "drawable",mainActivity.getPackageName()));
         //load optional name
         TextView tv_optional_name  = (TextView)infoView.findViewById(R.id.tv_optional_name);
         if(optional_name!=null)
@@ -321,12 +359,13 @@ public class MapController {
         if(!hasFood)
             iv_food.setVisibility(View.GONE);
         //setup subdivision
-        ListView lv_subdivision = (ListView) infoView.findViewById(R.id.lv_sub_division_list);
+        ExpandableHeightListView lv_subdivision = (ExpandableHeightListView) infoView.findViewById(R.id.lv_sub_division_list);
         if(sub_division!=null)
         {
 
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(mainActivity,android.R.layout.simple_list_item_1,sub_division);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(mainActivity,android.R.layout.simple_list_item_1,sub_division);
             lv_subdivision.setAdapter(adapter);
+            lv_subdivision.setExpanded(true);
         }
         else
             lv_subdivision.setVisibility(View.GONE);

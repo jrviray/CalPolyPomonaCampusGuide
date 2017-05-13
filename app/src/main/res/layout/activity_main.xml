@@ -7,23 +7,20 @@
     android:layout_height="match_parent"
     tools:context="com.a480.cs.cpp.calpolypomonacampusguide.MainActivity">
 
-
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/tb_main_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/tool_bar"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar" />
     <fragment
         android:id="@+id/map_fragment"
         android:name="com.google.android.gms.maps.MapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_below="@+id/searchView" />
-
-    <SearchView
-        android:id="@+id/searchView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true">
-
-    </SearchView>
+        android:layout_below="@+id/tb_main_toolbar" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/b_naviagtion_exit_button"
@@ -42,14 +39,14 @@
         android:id="@+id/b_my_location_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_below="@+id/searchView"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="@dimen/activity_horizontal_margin"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="18dp"
         android:clickable="true"
         app:elevation="10dp"
         app:fabSize="normal"
-        app:srcCompat="@android:drawable/ic_menu_mylocation" />
+        app:srcCompat="@android:drawable/ic_menu_mylocation"
+        android:layout_below="@+id/tb_main_toolbar"
+        android:layout_alignParentEnd="true" />
 
 </RelativeLayout>

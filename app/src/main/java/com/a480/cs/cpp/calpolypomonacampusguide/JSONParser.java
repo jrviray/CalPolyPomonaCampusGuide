@@ -14,7 +14,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,8 +27,11 @@ import static com.a480.cs.cpp.calpolypomonacampusguide.R.string.google_maps_key;
  */
 
 public class JSONParser {
-        InputStream is = null;
-        String json = "";
+        private InputStream is = null;
+
+        private String json = "";
+
+        private final int TIME_OUT = 2000;
 
         // constructor
         public JSONParser() {
@@ -49,12 +54,14 @@ public class JSONParser {
         return urlString.toString();
     }
 
-        public String getJSONFromUrl(String urlString) {
+        public String getJSONFromUrl(String urlString) throws SocketTimeoutException {
             HttpURLConnection urlConnection;
             // Making HTTP request
             try {
                 URL url = new URL(urlString);
                 urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setConnectTimeout(TIME_OUT);
+                urlConnection.setReadTimeout(TIME_OUT);
                 is = new BufferedInputStream(urlConnection.getInputStream());
 
                 BufferedReader reader = new BufferedReader(
@@ -69,7 +76,11 @@ public class JSONParser {
                 is.close();
 
                 urlConnection.disconnect();
-            }catch(IOException e) {
+            }catch (SocketTimeoutException e)
+            {
+                throw e;
+            }
+            catch(IOException e) {
                 e.printStackTrace();
             }
             return json;

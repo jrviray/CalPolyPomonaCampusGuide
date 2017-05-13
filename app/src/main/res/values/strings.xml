@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">Cal Poly Pomona Campus Guide</string>
     <string name="google_maps_key">AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM</string>
+    <string name="copy_right">Copyright (c) System.out, LLC Version 1.0</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 
 </resources>

@@ -7,10 +7,15 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.widget.SearchView;
+import android.support.v7.widget.Toolbar;
+import android.view.View;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -46,6 +51,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private DBController databaseController;
 
+    private DrawerLayout navigationDrawer;
+
+    private Toolbar mainToolBar;
+
+    private MapModeListener modeListener;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         //google play service is available, app starts
         else {
-            setContentView(R.layout.activity_main);
+            setContentView(R.layout.activity_root);
 
             DatabaseHelper database = new DatabaseHelper(this);
             databaseController = new DBController(database.getReadableDatabase(),database.getWritableDatabase());
@@ -73,11 +85,42 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             MapFragment mapFragment = (MapFragment) getFragmentManager()
                     .findFragmentById(R.id.map_fragment);
             mapFragment.getMapAsync(this);
+            //set up toolbar and drawer
+            mainToolBar = (Toolbar) findViewById(R.id.tb_main_toolbar);
+            navigationDrawer = (DrawerLayout) findViewById(R.id.dl_root);
+            setupNavDrawer();
             //get permission
             getPermission();
             connectApiClient();
         }
+    }
 
+    /**
+     * This method is used to define the map mode listener which is what actions should be executed
+     * when there is a mode change
+     */
+    private void initializeMapModeListener()
+    {
+        modeListener = new MapModeListener() {
+            @Override
+            public void onModeChange(MapController.MODE newMode) {
+                if(newMode== MapController.MODE.NAVIGATION)
+                    disableDrawer();
+                else
+                    enableDrawer();
+            }
+        };
+    }
+
+    private void setupNavDrawer()
+    {
+        this.setSupportActionBar(mainToolBar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        mainToolBar.setNavigationIcon(R.drawable.ic_menu);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, navigationDrawer, mainToolBar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        navigationDrawer.addDrawerListener(toggle);
     }
 
     /**
@@ -95,6 +138,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
+     * This method is to disable the drawer and make toolbar disappear
+     */
+    public void disableDrawer()
+    {
+        navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+        mainToolBar.setVisibility(View.GONE);
+    }
+
+    /**
+     * This method is to enable the drawer and make toolbar appear
+     */
+    public void enableDrawer()
+    {
+        navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+        mainToolBar.setVisibility(View.VISIBLE);
+    }
+
+
+    /**
      * This method is used to connect google api client in order to use gps location
      */
     private void connectApiClient()
@@ -110,14 +172,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
-        mapController = new MapController(this,googleMap,locationPermission,(
-                FloatingActionButton)findViewById(R.id.b_my_location_button),(FloatingActionButton)findViewById(R.id.b_naviagtion_exit_button));
+        initializeMapModeListener();
+        mapController = new MapController(this,googleMap,locationPermission,
+                (FloatingActionButton)findViewById(R.id.b_my_location_button),
+                (FloatingActionButton)findViewById(R.id.b_naviagtion_exit_button),
+                modeListener);
         mapController.changeMarkersOnMap(databaseController.getAll());
     }
 
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+    }
+
+    @Override
+    public void onBackPressed() {
+
+        if (navigationDrawer.isDrawerOpen(GravityCompat.START)) {
+            navigationDrawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override

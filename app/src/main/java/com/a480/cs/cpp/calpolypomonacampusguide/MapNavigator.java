@@ -10,6 +10,7 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.SphericalUtil;
 
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -37,10 +38,16 @@ public class MapNavigator {
 
     private Polyline route;
 
-    public MapNavigator(GoogleMap map, LatLng origin,LatLng dest)
-    {
+    /**
+     *
+     * @param map
+     * @param origin
+     * @param dest
+     * @throws SocketTimeoutException
+     */
+    public MapNavigator (GoogleMap map, LatLng origin,LatLng dest) throws SocketTimeoutException {
         this.map = map;
-            getNewRoute(origin,dest);
+        getNewRoute(origin,dest);
 
     }
 
@@ -49,8 +56,9 @@ public class MapNavigator {
      * @param curLoc
      * @return {@code true} if the navigation has done,
      * {@code false} if not
+     * @throws SocketTimeoutException
      */
-    public boolean updateCurLocation(LatLng curLoc)
+    public boolean updateCurLocation(LatLng curLoc) throws SocketTimeoutException
     {
         double distance_from_dest = SphericalUtil.computeDistanceBetween(curLoc,destination);
         if(distance_from_dest<=MIN_TOLERANCE)
@@ -60,23 +68,30 @@ public class MapNavigator {
             if (distance_from_last > MAX_TOLERANCE) {
                 route.remove();
                 getNewRoute(curLoc, destination);
-                Log.d("request", "request");
-
             }
             return false;
         }
     }
 
-
-    private void getNewRoute(LatLng start,LatLng destination) {
-        List routePointList = null;
+    /**
+     *
+     * @param start
+     * @param destination
+     * @throws SocketTimeoutException
+     */
+    private void getNewRoute(LatLng start,LatLng destination) throws SocketTimeoutException {
+        List routePointList;
         try {
             routePointList = new RouteRequest(start,destination).execute().get();
-            lastPosition=start;
-            this.destination= (LatLng) routePointList.get(routePointList.size()-1);
-            if(routePointList.size()>1)
-            bearing = (float) SphericalUtil.computeHeading((LatLng)routePointList.get(0), (LatLng)routePointList.get(1));
-            route = map.addPolyline(new PolylineOptions().addAll(routePointList).width(10).color(ROUTE_COLOR));
+            if(routePointList==null)
+                throw new SocketTimeoutException();
+            else {
+                lastPosition = start;
+                this.destination = (LatLng) routePointList.get(routePointList.size() - 1);
+                if (routePointList.size() > 1)
+                    bearing = (float) SphericalUtil.computeHeading((LatLng) routePointList.get(0), (LatLng) routePointList.get(1));
+                route = map.addPolyline(new PolylineOptions().addAll(routePointList).width(10).color(ROUTE_COLOR));
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
@@ -85,6 +100,11 @@ public class MapNavigator {
 
     }
 
+    /**
+     *
+     * @param curLocation
+     * @return
+     */
     public CameraPosition getNavigationCamera(LatLng curLocation)
     {
         if(route!=null) {
