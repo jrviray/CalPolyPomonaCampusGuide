@@ -13,17 +13,14 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
-
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -78,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //google play service is available, app starts
         else {
             setContentView(R.layout.activity_root);
-
+            //prepare the database
             DatabaseHelper database = new DatabaseHelper(this);
             databaseController = new DBController(database.getReadableDatabase(),database.getWritableDatabase());
             //get a reference of map
@@ -91,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             setupNavDrawer();
             //get permission
             getPermission();
+            //connect to google api
             connectApiClient();
         }
     }
@@ -112,6 +110,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
     }
 
+    /**
+     * This method is an helper method to setup the drawer and its interaction with the button on
+     * toolbar
+     */
     private void setupNavDrawer()
     {
         this.setSupportActionBar(mainToolBar);
@@ -177,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 (FloatingActionButton)findViewById(R.id.b_my_location_button),
                 (FloatingActionButton)findViewById(R.id.b_naviagtion_exit_button),
                 modeListener);
+        //add all poi on the map
         mapController.changeMarkersOnMap(databaseController.getAll());
     }
 
@@ -245,7 +248,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     {
                         e.printStackTrace();
                     }
-
                 }
                 else {
                     locationPermission = false;

@@ -2,18 +2,14 @@ package com.a480.cs.cpp.calpolypomonacampusguide;
 
 
 import android.location.Location;
-import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.github.paolorotolo.expandableheightlistview.ExpandableHeightListView;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -23,10 +19,6 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.maps.android.SphericalUtil;
-
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +60,21 @@ public class MapController {
 
     private MapModeListener modeListener;
 
+    /**
+     * This is the constructor of {@link MapController}
+     * @param mainActivity
+     *          the activity where the map is located at and where the resource can be obtained
+     * @param map
+     *          the google map which is going to be controlled
+     * @param permission
+     *          indicates the permission of accessing user's location
+     * @param myLocButton
+     *          this is a {@link FloatingActionButton} function as my location button
+     * @param exitButton
+     *          this is a {@link FloatingActionButton} function as exit button in navigation mode
+     * @param listener
+     *          a {@link MapModeListener} that is used to listen the the {@link #mode} change
+     */
     public MapController(AppCompatActivity mainActivity,GoogleMap map, boolean permission,FloatingActionButton myLocButton,FloatingActionButton exitButton,MapModeListener listener)
     {
 
@@ -167,6 +174,11 @@ public class MapController {
             }
     }
 
+    /**
+     * This method should be called when the mode is change so that the
+     * {@link #modeListener} could listen to the mode change
+     * @param newMode
+     */
     private void changeMode(MODE newMode)
     {
         mode = newMode;
@@ -205,6 +217,9 @@ public class MapController {
             return;
         }
             removeMarkersFromMap();
+        onMap_markerList.add(map.addMarker(new MarkerOptions().
+                        position(destination).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET))));
+
             changeMode(MODE.NAVIGATION);
             navigationExitButton.setVisibility(View.VISIBLE);
             navigationExitButton.setOnClickListener(new View.OnClickListener() {
@@ -229,6 +244,10 @@ public class MapController {
         enterNormalMode();
     }
 
+    /**
+     * This method should be called when internet connection fail to display
+     * an error message and exit the navigation
+     */
     private void failConnection()
     {
         Toast.makeText(mainActivity,"Connection failed!", Toast.LENGTH_LONG).show();
@@ -236,9 +255,11 @@ public class MapController {
     }
 
 
-
-
-
+    /**
+     * This method is used to change the markers on the map based on the list given
+     * @param filtered_list
+     * if {@code null}, all the marker will be removed
+     */
     public void changeMarkersOnMap(List<PoI> filtered_list)
     {
         removeMarkersFromMap();
@@ -248,13 +269,20 @@ public class MapController {
             onMap_markerList = new ArrayList();
             for (int i = 0; i < filtered_list.size(); i++) {
                 PoI thisPoI = filtered_list.get(i);
-                Marker newMarker = map.addMarker(new MarkerOptions().position(thisPoI.getLocation()).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
-                newMarker.setTag(thisPoI);
-                onMap_markerList.add(newMarker);
+                if(thisPoI!=null) {
+                    Marker newMarker = map.addMarker(new MarkerOptions().
+                            position(thisPoI.getLocation()).
+                            icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                    newMarker.setTag(thisPoI);
+                    onMap_markerList.add(newMarker);
+                }
             }
         }
     }
 
+    /**
+     * This is a helper method to remove all the markers from the map
+     */
     private void removeMarkersFromMap()
     {
         if(onMap_markerList!=null)
@@ -267,9 +295,15 @@ public class MapController {
         }
     }
 
-
-
-
+    /**
+     * This is a core method for the {@link MapController} to control to {@link #map}.
+     * Whenever the user's current location is updated, this method should be called to
+     * determine the action of the map either in normal mode or navigation mode. If it's
+     * in normal mode, the {@link #normalCamera}will be updated. If it's in navigation mode, the
+     * {@link #navigationCamera} along with the update of{@link #navigator}.
+     * Also, this method will control the arrival situation in navigation mode.
+     * @param newLocation
+     */
     public void curLocationUpdate(Location newLocation)
     {
         //update the current location
@@ -297,10 +331,14 @@ public class MapController {
                     failConnection();
                     return;
                 }
+                //the destination is arrived, need to exit the navigation mode
                 if(arrive_dest) {
+                    Toast.makeText(mainActivity,"You've arrived!", Toast.LENGTH_LONG).show();
                     exitNavigationMode();
                     return;
                 }
+
+                //check whether it's the first time called after enter navigation mode
                 boolean justEnterNavigation = (navigationCamera == null);
                 navigationCamera = navigator.getNavigationCamera(getCurLocation());
                 if(justEnterNavigation || isCameraFollowing)
@@ -312,7 +350,8 @@ public class MapController {
     }
 
     /**
-     * Thi method will be called when a marker is clicked by user
+     * This method will be called when a marker is clicked by user.
+     * This is the core method to handle the dynamic UI of each PoI
      * @param marker
      */
     private void showInfoDialog(Marker marker) {
@@ -389,6 +428,10 @@ public class MapController {
         });
     }
 
+    /**
+     * This is a helper method to get the current location in {@link LatLng}
+     * @return
+     */
     public LatLng getCurLocation()
     {
         if(curLocation==null)

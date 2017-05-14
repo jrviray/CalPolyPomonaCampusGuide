@@ -6,6 +6,7 @@ import android.util.Log;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.List;
 
 /**
@@ -28,7 +29,7 @@ public class RouteRequest extends AsyncTask<Void, Void, List> {
             String json = null;
             try {
                 json = jParser.getJSONFromUrl(jParser.makeURL(startPoint.latitude,startPoint.longitude,endPoint.latitude,endPoint.longitude));
-            } catch (SocketTimeoutException e) {
+            } catch (SocketTimeoutException | UnknownHostException e) {
                 connectionFail=true;
             }
             finally {

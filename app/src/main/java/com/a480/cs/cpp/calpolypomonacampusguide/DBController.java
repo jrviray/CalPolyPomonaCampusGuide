@@ -6,13 +6,23 @@ import android.database.sqlite.SQLiteDatabase;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 /**
  * Created by wxy03 on 5/11/2017.
  */
 
 public class DBController {
+
+    private final String POI_TABLE_NAME = "poi";
+
+    private final String SQL_SEQUENCE_TABLE = "sqlite_sequence";
+
+    private final String SEQ_COL = "seq";
 
     private final String ID_COL = "_id";
 
@@ -32,8 +42,6 @@ public class DBController {
 
     private final String RESTROOM_COL = "has_restroom";
 
-    private final String POI_TABLE_NAME = "poi";
-
     private final String FOOD_COL = "has_food";
 
     private final String SUB_DIV_COL = "sub_division";
@@ -42,28 +50,37 @@ public class DBController {
 
     private SQLiteDatabase writableDB;
 
+    private int numOfPoi;
+
     public DBController(SQLiteDatabase readable, SQLiteDatabase writable)
     {
         this.readableDB = readable;
         this.writableDB = writable;
+
+        Cursor cursor = readableDB.query(SQL_SEQUENCE_TABLE,null,null,null,null,null,null);
+        cursor.moveToFirst();
+        String seqNum = cursor.getString(cursor.getColumnIndexOrThrow(SEQ_COL));
+        numOfPoi=Integer.parseInt(seqNum)+1;
     }
 
     /**
      * this method is used to get all the data inside the database
      * @return
-     * A list of PoI which contains all the point of interest in the database
+     * A map of PoI which contains all the point of interest in the database
+     * the key is the unique ID of poi
      */
-    public List<PoI> getAll()
+    public List getAll()
     {
         Cursor cursor = readableDB.query(POI_TABLE_NAME,null,null,null,null,null,null);
-        List<PoI> returnList = new ArrayList<>();
+        List cache_data = new ArrayList();
         cursor.moveToFirst();
+        PoI[] tempArray = new PoI[numOfPoi];
         while(!cursor.isAfterLast())
         {
-            returnList.add(makePoI(cursor));
+            tempArray[cursor.getInt(cursor.getColumnIndexOrThrow(ID_COL))]=makePoI(cursor);
             cursor.moveToNext();
         }
-        return returnList;
+        return Arrays.asList(tempArray);
     }
 
     /**

@@ -54,7 +54,7 @@ public class JSONParser {
         return urlString.toString();
     }
 
-        public String getJSONFromUrl(String urlString) throws SocketTimeoutException {
+        public String getJSONFromUrl(String urlString) throws SocketTimeoutException, UnknownHostException {
             HttpURLConnection urlConnection;
             // Making HTTP request
             try {
@@ -76,7 +76,7 @@ public class JSONParser {
                 is.close();
 
                 urlConnection.disconnect();
-            }catch (SocketTimeoutException e)
+            }catch (SocketTimeoutException  | UnknownHostException e)
             {
                 throw e;
             }

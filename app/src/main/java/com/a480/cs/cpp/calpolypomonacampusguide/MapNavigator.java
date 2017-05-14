@@ -25,7 +25,7 @@ public class MapNavigator {
     private final int ROUTE_COLOR =Color.argb(0xFF,46,155,202);
     private GoogleMap map;
 
-    private final double MIN_TOLERANCE = 5f;
+    private final double MIN_TOLERANCE = 15f;
 
     private final double MAX_TOLERANCE = 15f;
 
@@ -33,26 +33,27 @@ public class MapNavigator {
 
     private LatLng lastPosition;
 
-
     private float bearing;
 
     private Polyline route;
 
     /**
-     *
+     * This is the constructor of {@link MapNavigator}
      * @param map
      * @param origin
      * @param dest
      * @throws SocketTimeoutException
+     * if the internet connection failed
      */
     public MapNavigator (GoogleMap map, LatLng origin,LatLng dest) throws SocketTimeoutException {
         this.map = map;
+        destination = dest;
         getNewRoute(origin,dest);
 
     }
 
     /**
-     *
+     * This method should be called whenever there is location update
      * @param curLoc
      * @return {@code true} if the navigation has done,
      * {@code false} if not
@@ -87,7 +88,6 @@ public class MapNavigator {
                 throw new SocketTimeoutException();
             else {
                 lastPosition = start;
-                this.destination = (LatLng) routePointList.get(routePointList.size() - 1);
                 if (routePointList.size() > 1)
                     bearing = (float) SphericalUtil.computeHeading((LatLng) routePointList.get(0), (LatLng) routePointList.get(1));
                 route = map.addPolyline(new PolylineOptions().addAll(routePointList).width(10).color(ROUTE_COLOR));
@@ -101,7 +101,7 @@ public class MapNavigator {
     }
 
     /**
-     *
+     * This method is used to get the appropriate camera position and bearing during the navigation
      * @param curLocation
      * @return
      */
