@@ -6,6 +6,7 @@ import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -14,6 +15,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.view.MenuItem;
 import android.view.View;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -29,7 +31,9 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,
         GoogleApiClient.OnConnectionFailedListener,
         GoogleApiClient.ConnectionCallbacks,
-        LocationListener
+        LocationListener,
+        NavigationView.OnNavigationItemSelectedListener,
+        MapModeListener
 {
 
     public static String API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
@@ -52,7 +56,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Toolbar mainToolBar;
 
-    private MapModeListener modeListener;
+    private Filter PoIFilter;
+
 
 
     @Override
@@ -75,9 +80,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //google play service is available, app starts
         else {
             setContentView(R.layout.activity_root);
-            //prepare the database
-            DatabaseHelper database = new DatabaseHelper(this);
-            databaseController = new DBController(database.getReadableDatabase(),database.getWritableDatabase());
+
             //get a reference of map
             MapFragment mapFragment = (MapFragment) getFragmentManager()
                     .findFragmentById(R.id.map_fragment);
@@ -90,24 +93,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             getPermission();
             //connect to google api
             connectApiClient();
+            //prepare the database
+            prepareDataFromDatabase();
         }
     }
 
+
     /**
-     * This method is used to define the map mode listener which is what actions should be executed
-     * when there is a mode change
+     * This method is used to prepare all the data needed from database and get {@link #databaseController} and
+     * {@link #PoIFilter} ready
      */
-    private void initializeMapModeListener()
+    private void prepareDataFromDatabase()
     {
-        modeListener = new MapModeListener() {
-            @Override
-            public void onModeChange(MapController.MODE newMode) {
-                if(newMode== MapController.MODE.NAVIGATION)
-                    disableDrawer();
-                else
-                    enableDrawer();
-            }
-        };
+            DatabaseHelper database = new DatabaseHelper(this);
+            databaseController = new DBController(database.getReadableDatabase(),database.getWritableDatabase());
+            PoIFilter = new Filter(databaseController.getAll());
     }
 
     /**
@@ -118,11 +118,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     {
         this.setSupportActionBar(mainToolBar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        mainToolBar.setNavigationIcon(R.drawable.ic_menu);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, navigationDrawer, mainToolBar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         navigationDrawer.addDrawerListener(toggle);
+        ((NavigationView)findViewById(R.id.nav_view)).setNavigationItemSelectedListener(this);
+        ((NavigationView)findViewById(R.id.nav_view)).setCheckedItem(R.id.nav_filter_all);
+        enableDrawer();
     }
 
     /**
@@ -144,8 +145,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      */
     public void disableDrawer()
     {
+
         navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        mainToolBar.setVisibility(View.GONE);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(false);
     }
 
     /**
@@ -153,8 +155,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      */
     public void enableDrawer()
     {
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        mainToolBar.setNavigationIcon(R.drawable.ic_menu);
         navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        mainToolBar.setVisibility(View.VISIBLE);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
 
@@ -174,13 +178,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
-        initializeMapModeListener();
-        mapController = new MapController(this,googleMap,locationPermission,
+        mapController = new MapController(
+                this,
+                googleMap,locationPermission,
                 (FloatingActionButton)findViewById(R.id.b_my_location_button),
                 (FloatingActionButton)findViewById(R.id.b_naviagtion_exit_button),
-                modeListener);
-        //add all poi on the map
-        mapController.changeMarkersOnMap(databaseController.getAll());
+                this);
+        //show all poi on the map
+        mapController.changeMarkersOnMap(PoIFilter.getAll_PoI_list());
     }
 
 
@@ -266,4 +271,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         getPermission();
     }
 
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        switch (id)
+        {
+            case R.id.nav_filter_all:
+                mapController.changeMarkersOnMap(PoIFilter.getAll_PoI_list());
+                break;
+            case R.id.nav_filter_building:
+                mapController.changeMarkersOnMap(PoIFilter.getBuilding_list());
+                break;
+            case R.id.nav_filter_food:
+                mapController.changeMarkersOnMap(PoIFilter.getFood_list());
+                break;
+            case R.id.nav_filter_open_space:
+                mapController.changeMarkersOnMap(PoIFilter.getOpen_space_list());
+                break;
+            case R.id.nav_filter_parking:
+                mapController.changeMarkersOnMap(PoIFilter.getParking_list());
+                break;
+        }
+        navigationDrawer.closeDrawers();
+        return true;
+    }
+
+    @Override
+    public void onModeChange(MapController.MODE newMode) {
+        if(newMode== MapController.MODE.NAVIGATION)
+            disableDrawer();
+        else
+            enableDrawer();
+    }
 }

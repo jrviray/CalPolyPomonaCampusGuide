@@ -98,38 +98,33 @@ public class DBController {
         double lat = cursor.getDouble(cursor.getColumnIndexOrThrow(LATITUDE_COL));
         double lng = cursor.getDouble(cursor.getColumnIndexOrThrow(LONGITUDE_COL));
         LatLng position = new LatLng(lat,lng);
-
+        //get postfix of the PoI
+        String postfix = cursor.getString(cursor.getColumnIndexOrThrow(POSTFIX_COL));
+        //get the alternative name
+        String alternative_name = cursor.getString(cursor.getColumnIndexOrThrow(ALT_NAME_COL));
+        //get subdivision
+        String subdivision = cursor.getString(cursor.getColumnIndexOrThrow(SUB_DIV_COL));
         //determine type
         String thisType = cursor.getString(cursor.getColumnIndexOrThrow(TYPE_COL));
+
+        PoI newPoI;
         if(thisType.equals("BUILDING"))
         {
-            //get building number
-            String postfix = cursor.getString(cursor.getColumnIndexOrThrow(POSTFIX_COL));
             //check whether the building has restroom
             boolean has_restroom = cursor.getString(cursor.getColumnIndexOrThrow(RESTROOM_COL)).equals("T")? true:false;
             //check whether the building has food
             boolean has_food = cursor.getString(cursor.getColumnIndexOrThrow(FOOD_COL)).equals("T")? true:false;
-            //get the optional name
-            String optional_name = cursor.getString(cursor.getColumnIndexOrThrow(ALT_NAME_COL));
-            //get subdivision
-            String subdivision = cursor.getString(cursor.getColumnIndexOrThrow(SUB_DIV_COL));
-            Building thisBuilding = new Building(postfix,image_name,position,description,has_restroom,has_food);
-            if(optional_name!=null)
-                thisBuilding.setOptionalName(optional_name);
+            newPoI = new Building(postfix,image_name,position,description,has_restroom,has_food);
+            if(alternative_name!=null)
+                ((Building)newPoI).setAltName(alternative_name);
             if(subdivision!=null)
-                thisBuilding.setSubdivision(subdivision);
-            return thisBuilding;
+                ((Building)newPoI).setSubdivision(subdivision);
         }
-
+        else if(thisType.equals("PARKING")) {
+            newPoI = new ParkingLot(postfix, image_name, position, description,subdivision);
+        }
         else
-            return null;
-
-
-
-
-
-
-
-
+            newPoI = new OpenSpace(alternative_name,image_name,position,description);
+        return newPoI;
     }
 }

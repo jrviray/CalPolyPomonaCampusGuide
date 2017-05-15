@@ -14,7 +14,7 @@ public class Building extends PoI {
 
     private boolean hasFood;
 
-    private String optionalName;
+    private String altName;
 
     private String[] subdivision;
 
@@ -41,12 +41,12 @@ public class Building extends PoI {
     }
 
 
-    public String getOptionalName() {
-        return optionalName;
+    public String getAltName() {
+        return altName;
     }
 
-    public void setOptionalName(String optionalName) {
-        this.optionalName = optionalName;
+    public void setAltName(String altName) {
+        this.altName = altName;
     }
 
     public String[] getSubdivision() {

@@ -357,21 +357,28 @@ public class MapController {
     private void showInfoDialog(Marker marker) {
         final PoI thisPoI = (PoI) marker.getTag();
         String title=null;
-        String description=null;
+        String description=thisPoI.getDescription();;
         boolean hasRestroom = false;
         boolean hasFood = false;
         String[] sub_division = null;
         String optional_name = null;
+        String availability = null;
 
         if(thisPoI instanceof Building)
         {
             title = "Building "+((Building) thisPoI).getBuildingNum();
-            description = thisPoI.getDescription();
             hasRestroom=((Building) thisPoI).hasRestroom();
             hasFood=((Building) thisPoI).hasFood();
-            optional_name=((Building) thisPoI).getOptionalName();
+            optional_name=((Building) thisPoI).getAltName();
             sub_division=((Building) thisPoI).getSubdivision();
         }
+        else if(thisPoI instanceof ParkingLot)
+        {
+            title = "Parking Lot "+((ParkingLot)thisPoI).getParkingLotNum();
+            availability = ((ParkingLot)thisPoI).getAvailability();
+        }
+        else
+            title = ((OpenSpace)thisPoI).getName();
 
         final MaterialDialog infoDialog = new MaterialDialog.Builder(mainActivity).customView(R.layout.info_layout, true)
                 .title(title).show();
@@ -408,6 +415,16 @@ public class MapController {
         }
         else
             lv_subdivision.setVisibility(View.GONE);
+        //setup availability
+        TextView avail_title = (TextView) infoView.findViewById(R.id.tv_availability_title);
+        TextView avail_content = (TextView) infoView.findViewById(R.id.tv_availability_content);
+        if(availability!=null)
+            avail_content.setText(availability);
+        else
+        {
+            avail_title.setVisibility(View.GONE);
+            avail_content.setVisibility(View.GONE);
+        }
 
         //setup route button
         Button routeButton = (Button) infoView.findViewById(R.id.b_route_button);

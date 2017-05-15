@@ -3,7 +3,9 @@
 
     <item android:title="Filter">
         <menu>
-            <group android:id="@+id/g">
+            <group
+                android:id="@+id/gr_filter"
+                android:checkableBehavior="single">
                 <item
                     android:id="@+id/nav_filter_all"
                     android:icon="@drawable/ic_filter_all"
