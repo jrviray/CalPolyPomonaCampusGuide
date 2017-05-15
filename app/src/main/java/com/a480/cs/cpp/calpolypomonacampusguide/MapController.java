@@ -1,6 +1,7 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
 
+import android.content.Context;
 import android.location.Location;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -28,7 +29,9 @@ import java.util.concurrent.ExecutionException;
  * Created by wxy03 on 5/1/2017.
  */
 
-public class MapController {
+public class MapController implements MapRouteListener {
+
+
 
     protected enum MODE {NORMAL,NAVIGATION};
 
@@ -46,7 +49,7 @@ public class MapController {
 
     private List<Marker> onMap_markerList;
 
-    private AppCompatActivity mainActivity;
+    private Context mainCntext;
 
     private CameraPosition navigationCamera;
 
@@ -60,29 +63,27 @@ public class MapController {
 
     private MapModeListener modeListener;
 
+    private MaterialDialog cache_dialog;
+
     /**
      * This is the constructor of {@link MapController}
-     * @param mainActivity
+     * @param mainCntext
      *          the activity where the map is located at and where the resource can be obtained
      * @param map
      *          the google map which is going to be controlled
      * @param permission
      *          indicates the permission of accessing user's location
-     * @param myLocButton
-     *          this is a {@link FloatingActionButton} function as my location button
-     * @param exitButton
-     *          this is a {@link FloatingActionButton} function as exit button in navigation mode
      * @param listener
      *          a {@link MapModeListener} that is used to listen the the {@link #mode} change
      */
-    public MapController(AppCompatActivity mainActivity,GoogleMap map, boolean permission,FloatingActionButton myLocButton,FloatingActionButton exitButton,MapModeListener listener)
+    public MapController(final AppCompatActivity mainCntext, GoogleMap map, boolean permission, MapModeListener listener)
     {
 
         this.map = map;
         isCameraFollowing = false;
-        this.mainActivity = mainActivity;
-        myLocationButton = myLocButton;
-        navigationExitButton = exitButton;
+        this.mainCntext = mainCntext;
+        myLocationButton = (FloatingActionButton)mainCntext.findViewById(R.id.b_my_location_button);
+        navigationExitButton =(FloatingActionButton)mainCntext.findViewById(R.id.b_naviagtion_exit_button);
         this.modeListener = listener;
         setPermission(permission);
         map.getUiSettings().setMapToolbarEnabled(false);
@@ -91,7 +92,8 @@ public class MapController {
         map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                showInfoDialog(marker);
+                getInfoDialog((PoI) marker.getTag());
+                cache_dialog.show();
                 return false;
             }
         });
@@ -104,6 +106,10 @@ public class MapController {
         enterNormalMode();
     }
 
+    private void getInfoDialog(PoI thisPoI)
+    {
+        cache_dialog = InfoViewFactory.getInfoDialog(mainCntext,thisPoI,this);
+    }
 
 
     /**
@@ -192,9 +198,6 @@ public class MapController {
     {
         navigationExitButton.setVisibility(View.GONE);
         changeMode(MODE.NORMAL);
-
-        ((MainActivity)mainActivity).enableDrawer();
-
         //if there is no current position available, point to the center of cal poly pomona
         if(curLocation==null)
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(34.0565284,-117.8215295),18));
@@ -250,7 +253,7 @@ public class MapController {
      */
     private void failConnection()
     {
-        Toast.makeText(mainActivity,"Connection failed!", Toast.LENGTH_LONG).show();
+        Toast.makeText(mainCntext,"Connection failed!", Toast.LENGTH_LONG).show();
         exitNavigationMode();
     }
 
@@ -333,7 +336,7 @@ public class MapController {
                 }
                 //the destination is arrived, need to exit the navigation mode
                 if(arrive_dest) {
-                    Toast.makeText(mainActivity,"You've arrived!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mainCntext,"You've arrived!", Toast.LENGTH_LONG).show();
                     exitNavigationMode();
                     return;
                 }
@@ -349,101 +352,6 @@ public class MapController {
         }
     }
 
-    /**
-     * This method will be called when a marker is clicked by user.
-     * This is the core method to handle the dynamic UI of each PoI
-     * @param marker
-     */
-    private void showInfoDialog(Marker marker) {
-        final PoI thisPoI = (PoI) marker.getTag();
-        String title=null;
-        String description=thisPoI.getDescription();;
-        boolean hasRestroom = false;
-        boolean hasFood = false;
-        String[] sub_division = null;
-        String optional_name = null;
-        String availability = null;
-
-        if(thisPoI instanceof Building)
-        {
-            title = "Building "+((Building) thisPoI).getBuildingNum();
-            hasRestroom=((Building) thisPoI).hasRestroom();
-            hasFood=((Building) thisPoI).hasFood();
-            optional_name=((Building) thisPoI).getAltName();
-            sub_division=((Building) thisPoI).getSubdivision();
-        }
-        else if(thisPoI instanceof ParkingLot)
-        {
-            title = "Parking Lot "+((ParkingLot)thisPoI).getParkingLotNum();
-            availability = ((ParkingLot)thisPoI).getAvailability();
-        }
-        else
-            title = ((OpenSpace)thisPoI).getName();
-
-        final MaterialDialog infoDialog = new MaterialDialog.Builder(mainActivity).customView(R.layout.info_layout, true)
-                .title(title).show();
-        View infoView = infoDialog.getCustomView();
-
-        //load description
-        TextView tv_description = (TextView) infoView.findViewById(R.id.tv_entry_description);
-        tv_description.setText(description);
-        //load image
-        ImageView iv_image = (ImageView) infoView.findViewById(R.id.iv_poi_image);
-        iv_image.setImageResource(mainActivity.getResources().getIdentifier(thisPoI.getImageName(), "drawable",mainActivity.getPackageName()));
-        //load optional name
-        TextView tv_optional_name  = (TextView)infoView.findViewById(R.id.tv_optional_name);
-        if(optional_name!=null)
-            tv_optional_name.setText(optional_name);
-        else
-            tv_optional_name.setVisibility(View.GONE);
-        //setup restroom icon
-        ImageView iv_restroom = (ImageView) infoView.findViewById(R.id.iv_restroom);
-        if(!hasRestroom)
-            iv_restroom.setVisibility(View.GONE);
-        //setup food icon
-        ImageView iv_food = (ImageView) infoView.findViewById(R.id.iv_food);
-        if(!hasFood)
-            iv_food.setVisibility(View.GONE);
-        //setup subdivision
-        ExpandableHeightListView lv_subdivision = (ExpandableHeightListView) infoView.findViewById(R.id.lv_sub_division_list);
-        if(sub_division!=null)
-        {
-
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(mainActivity,android.R.layout.simple_list_item_1,sub_division);
-            lv_subdivision.setAdapter(adapter);
-            lv_subdivision.setExpanded(true);
-        }
-        else
-            lv_subdivision.setVisibility(View.GONE);
-        //setup availability
-        TextView avail_title = (TextView) infoView.findViewById(R.id.tv_availability_title);
-        TextView avail_content = (TextView) infoView.findViewById(R.id.tv_availability_content);
-        if(availability!=null)
-            avail_content.setText(availability);
-        else
-        {
-            avail_title.setVisibility(View.GONE);
-            avail_content.setVisibility(View.GONE);
-        }
-
-        //setup route button
-        Button routeButton = (Button) infoView.findViewById(R.id.b_route_button);
-        routeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(locationPermission && curLocation!=null) {
-                    try {
-                        enterNavigationMode(thisPoI.getLocation());
-                        infoDialog.cancel();
-                    } catch (ExecutionException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-    }
 
     /**
      * This is a helper method to get the current location in {@link LatLng}
@@ -455,6 +363,20 @@ public class MapController {
             return null;
         else
         return new LatLng(curLocation.getLatitude(),curLocation.getLongitude());
+    }
+
+    @Override
+    public void startRoute(LatLng destination) {
+        if(locationPermission && curLocation!=null) {
+            try {
+                enterNavigationMode(destination);
+                cache_dialog.cancel();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 

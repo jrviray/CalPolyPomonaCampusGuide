@@ -178,12 +178,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
-        mapController = new MapController(
-                this,
-                googleMap,locationPermission,
-                (FloatingActionButton)findViewById(R.id.b_my_location_button),
-                (FloatingActionButton)findViewById(R.id.b_naviagtion_exit_button),
-                this);
+        mapController = new MapController(this, googleMap,locationPermission, this);
         //show all poi on the map
         mapController.changeMarkersOnMap(PoIFilter.getAll_PoI_list());
     }
