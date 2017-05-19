@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:title="Filter">
-        <menu>
             <group
                 android:id="@+id/gr_filter"
                 android:checkableBehavior="single">
@@ -24,24 +22,12 @@
                     android:title="Building" />
                 <item
                     android:id="@+id/nav_filter_parking"
-                    android:icon="@drawable/ic_filter_paring"
+                    android:icon="@drawable/ic_filter_parking"
                     android:title="Parking lot" />
+                <item
+                    android:id="@+id/nav_find_restroom"
+                    android:icon="@drawable/ic_option_restroom"
+                    android:title="Find nearest restroom" />
             </group>
         </menu>
-    </item>
 
-    <item android:title="Options">
-        <menu>
-            <item
-                android:id="@+id/nav_find_restroom"
-                android:icon="@drawable/ic_option_restroom"
-                android:title="Find nearest restroom" />
-            <item
-                android:id="@+id/nav_radius"
-                android:icon="@drawable/ic_option_radius"
-                android:title="Set filter radius" />
-
-        </menu>
-    </item>
-
-</menu>

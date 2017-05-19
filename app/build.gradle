@@ -36,4 +36,5 @@ dependencies {
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.github.paolorotolo:expandableheightlistview:1.0.0'
     compile 'com.github.dmytrodanylyk.android-process-button:library:1.0.0'
+    compile 'com.android.support:recyclerview-v7:25.3.1'
 }

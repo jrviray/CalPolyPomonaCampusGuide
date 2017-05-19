@@ -32,17 +32,18 @@ public class Filter {
      */
     public void updateFilterData(List new_PoI_list)
     {
-        all_PoI_list = new_PoI_list;
+        all_PoI_list = new ArrayList();
         building_list = new ArrayList();
         parking_list = new ArrayList();
         open_space_list = new ArrayList();
         food_list = new ArrayList();
 
-        for(int i=0;i<all_PoI_list.size();i++)
+        for(int i=0;i<new_PoI_list.size();i++)
         {
-            PoI thisPoI = (PoI) all_PoI_list.get(i);
+            PoI thisPoI = (PoI) new_PoI_list.get(i);
             if(thisPoI!=null)
             {
+                all_PoI_list.add(thisPoI);
                 if(thisPoI instanceof Building)
                 {
                     building_list.add(thisPoI);
@@ -51,7 +52,7 @@ public class Filter {
                 }
                 else if(thisPoI instanceof ParkingLot)
                     parking_list.add(thisPoI);
-                else
+                else if(thisPoI instanceof OpenSpace)
                     open_space_list.add(thisPoI);
             }
         }

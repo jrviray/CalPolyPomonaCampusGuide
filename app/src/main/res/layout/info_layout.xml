@@ -49,9 +49,9 @@
         <ImageView
             android:id="@+id/iv_food"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="28dp"
+            android:layout_marginLeft="10dp"
             android:layout_weight="1"
-            android:paddingLeft="5dp"
             app:srcCompat="@drawable/food_icon" />
     </LinearLayout>
 

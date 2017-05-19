@@ -1,10 +1,7 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
 import android.os.AsyncTask;
-import android.util.Log;
-
 import com.google.android.gms.maps.model.LatLng;
-
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.List;

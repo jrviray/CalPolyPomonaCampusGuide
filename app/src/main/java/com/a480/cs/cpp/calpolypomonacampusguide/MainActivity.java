@@ -1,11 +1,12 @@
 package com.a480.cs.cpp.calpolypomonacampusguide;
 
+import android.app.SearchManager;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
@@ -16,7 +17,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
-import android.view.View;
+
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -33,8 +35,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         GoogleApiClient.ConnectionCallbacks,
         LocationListener,
         NavigationView.OnNavigationItemSelectedListener,
-        MapModeListener
-{
+        MapController.MapModeListener,
+        PoIAdapter.OnItemClickListener{
 
     public static String API_KEY = "AIzaSyCz-BTwm8HrINpXaRfgOOvvzJuKnxswdaM";
 
@@ -54,9 +56,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private DrawerLayout navigationDrawer;
 
-    private Toolbar mainToolBar;
-
     private Filter PoIFilter;
+
+    private ToolbarController toolbarController;
 
 
 
@@ -86,9 +88,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     .findFragmentById(R.id.map_fragment);
             mapFragment.getMapAsync(this);
             //set up toolbar and drawer
-            mainToolBar = (Toolbar) findViewById(R.id.tb_main_toolbar);
+            ;
             navigationDrawer = (DrawerLayout) findViewById(R.id.dl_root);
-            setupNavDrawer();
+            setupNavDrawer_Toolbar();
             //get permission
             getPermission();
             //connect to google api
@@ -114,16 +116,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      * This method is an helper method to setup the drawer and its interaction with the button on
      * toolbar
      */
-    private void setupNavDrawer()
+    private void setupNavDrawer_Toolbar()
     {
-        this.setSupportActionBar(mainToolBar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        Toolbar mainToolbar = (Toolbar) findViewById(R.id.tb_main_toolbar);
+        this.setSupportActionBar(mainToolbar);
+        toolbarController = new ToolbarController(this,mainToolbar,getSupportActionBar());
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, navigationDrawer, mainToolBar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+                this, navigationDrawer, mainToolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         navigationDrawer.addDrawerListener(toggle);
         ((NavigationView)findViewById(R.id.nav_view)).setNavigationItemSelectedListener(this);
         ((NavigationView)findViewById(R.id.nav_view)).setCheckedItem(R.id.nav_filter_all);
-        enableDrawer();
+        normalMode();
     }
 
     /**
@@ -141,24 +144,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
-     * This method is to disable the drawer and make toolbar disappear
+     * This method is to enter to normal mode by setting up the drawer layout and toolbar
      */
-    public void disableDrawer()
+    public void normalMode()
     {
+        toolbarController.normalMode();
+        navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
 
-        navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(false);
     }
 
     /**
-     * This method is to enable the drawer and make toolbar appear
+     * This method is to enter to navigation mode by setting up the drawer layout and toolbar
      */
-    public void enableDrawer()
+    public void navigationMode()
     {
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        mainToolBar.setNavigationIcon(R.drawable.ic_menu);
-        navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        toolbarController.enterNavigationMode(mapController.getNavigationExitListener());
+        navigationDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
     }
 
 
@@ -181,6 +182,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapController = new MapController(this, googleMap,locationPermission, this);
         //show all poi on the map
         mapController.changeMarkersOnMap(PoIFilter.getAll_PoI_list());
+        //set up the listener for my location button
+        findViewById(R.id.b_my_location_button).setOnClickListener(mapController.getMyLocationListener());
     }
 
 
@@ -294,8 +297,43 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onModeChange(MapController.MODE newMode) {
         if(newMode== MapController.MODE.NAVIGATION)
-            disableDrawer();
+            navigationMode();
         else
-            enableDrawer();
+            normalMode();
+    }
+
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    /**
+     * This method is used to handle any possible inteent it may get
+     * @param intent
+     */
+    private void handleIntent(Intent intent)
+    {
+        if(Intent.ACTION_SEARCH.equals(intent.getAction()))
+        {
+                searchPoI(intent.getStringExtra(SearchManager.QUERY));
+        }
+    }
+
+    private MaterialDialog cache_dialog;
+
+    private void searchPoI(String userInput)
+    {
+
+        cache_dialog = DialogFactory.getSearchResultDialog(this,PoIFilter.getAll_PoI_list(),this);
+        cache_dialog.show();
+    }
+
+
+    @Override
+    public void onItemClick(PoI clickedPoI) {
+        cache_dialog.cancel();
+        mapController.findOneMarker(clickedPoI);
     }
 }

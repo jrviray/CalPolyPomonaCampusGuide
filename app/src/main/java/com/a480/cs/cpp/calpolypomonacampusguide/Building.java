@@ -8,7 +8,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 public class Building extends PoI {
 
-    private String buildingNum;
+    private String buildingName;
 
     private boolean hasRestroom;
 
@@ -22,13 +22,13 @@ public class Building extends PoI {
     {
         super(imageName,location,description);
         this.hasRestroom = hasRestroom;
-        this.buildingNum = buildingNum;
+        this.buildingName = "Building "+buildingNum;
         this.hasFood = hasFood;
 
     }
 
-    public String getBuildingNum() {
-        return buildingNum;
+    public String getBuildingName() {
+        return buildingName;
     }
 
     public boolean hasRestroom() {
@@ -56,5 +56,22 @@ public class Building extends PoI {
     public void setSubdivision(String subdivisionList) {
 
         this.subdivision = subdivisionList.split(",");;
+    }
+
+    public String getSubInString()
+    {
+        if(subdivision==null)
+            return null;
+        else
+        {
+            String newString = "";
+            for(String nextString:subdivision)
+            {
+                newString+=nextString;
+                newString+=", ";
+            }
+            return newString.substring(0,newString.length()-2);
+        }
+
     }
 }

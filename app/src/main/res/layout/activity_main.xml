@@ -7,13 +7,12 @@
     android:layout_height="match_parent"
     tools:context="com.a480.cs.cpp.calpolypomonacampusguide.MainActivity">
 
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/tb_main_toolbar"
+
+    <include
+        layout="@layout/toolbar_layout"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/tool_bar"
-        android:elevation="4dp"
-        android:theme="@style/ThemeOverlay.AppCompat.ActionBar" />
+        android:layout_height="wrap_content" />
+
     <fragment
         android:id="@+id/map_fragment"
         android:name="com.google.android.gms.maps.MapFragment"
@@ -23,30 +22,19 @@
         android:layout_below="@+id/tb_main_toolbar" />
 
     <android.support.design.widget.FloatingActionButton
-        android:id="@+id/b_naviagtion_exit_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignStart="@+id/b_my_location_button"
-        android:layout_marginBottom="16dp"
-        android:layout_marginRight="@dimen/activity_horizontal_margin"
-        android:clickable="true"
-        app:elevation="10dp"
-        app:fabSize="normal"
-        app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
-
-    <android.support.design.widget.FloatingActionButton
         android:id="@+id/b_my_location_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
         android:layout_marginRight="@dimen/activity_horizontal_margin"
-        android:layout_marginTop="18dp"
         android:clickable="true"
         app:elevation="10dp"
         app:fabSize="normal"
         app:srcCompat="@android:drawable/ic_menu_mylocation"
-        android:layout_below="@+id/tb_main_toolbar"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp" />
+
+
 
 </RelativeLayout>

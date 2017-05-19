@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary">#00963f</color>
-    <color name="text_color">#403e3e</color>
+    <color name="text_color">#565353</color>
     <color name="tool_bar">#66bb6a</color>
-    <color name="header_title">#1b1f6b</color>
+    <color name="header_title">#000000</color>
     <color name="drawer_icon">#ff5722</color>
+    <color name="search_dialog_icon">#00796b</color>
+    <color name="info_dialog_icon">#535252</color>
 </resources>

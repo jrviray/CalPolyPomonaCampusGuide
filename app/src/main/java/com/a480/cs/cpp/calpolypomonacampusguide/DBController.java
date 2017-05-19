@@ -66,13 +66,12 @@ public class DBController {
     /**
      * this method is used to get all the data inside the database
      * @return
-     * A map of PoI which contains all the point of interest in the database
-     * the key is the unique ID of poi
+     * A list of PoI which contains all the point of interest in the database
+     * the index is the unique ID of poi
      */
     public List getAll()
     {
         Cursor cursor = readableDB.query(POI_TABLE_NAME,null,null,null,null,null,null);
-        List cache_data = new ArrayList();
         cursor.moveToFirst();
         PoI[] tempArray = new PoI[numOfPoi];
         while(!cursor.isAfterLast())

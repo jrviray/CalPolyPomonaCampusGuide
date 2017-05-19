@@ -3,16 +3,9 @@ package com.a480.cs.cpp.calpolypomonacampusguide;
 
 import android.content.Context;
 import android.location.Location;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
-import com.github.paolorotolo.expandableheightlistview.ExpandableHeightListView;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -29,9 +22,12 @@ import java.util.concurrent.ExecutionException;
  * Created by wxy03 on 5/1/2017.
  */
 
-public class MapController implements MapRouteListener {
+public class MapController implements DialogFactory.MapRouteButtonClickListener {
 
 
+    public interface MapModeListener{
+        public void onModeChange(MapController.MODE newMode);
+    }
 
     protected enum MODE {NORMAL,NAVIGATION};
 
@@ -43,13 +39,9 @@ public class MapController implements MapRouteListener {
 
     private MODE mode;
 
-    private FloatingActionButton myLocationButton;
-
-    private FloatingActionButton navigationExitButton;
-
     private List<Marker> onMap_markerList;
 
-    private Context mainCntext;
+    private Context mainContext;
 
     private CameraPosition navigationCamera;
 
@@ -63,11 +55,13 @@ public class MapController implements MapRouteListener {
 
     private MapModeListener modeListener;
 
+    private View.OnClickListener myLocationButtonListener;
+
     private MaterialDialog cache_dialog;
 
     /**
      * This is the constructor of {@link MapController}
-     * @param mainCntext
+     * @param mainContext
      *          the activity where the map is located at and where the resource can be obtained
      * @param map
      *          the google map which is going to be controlled
@@ -76,14 +70,12 @@ public class MapController implements MapRouteListener {
      * @param listener
      *          a {@link MapModeListener} that is used to listen the the {@link #mode} change
      */
-    public MapController(final AppCompatActivity mainCntext, GoogleMap map, boolean permission, MapModeListener listener)
+    public MapController(final Context mainContext, GoogleMap map, boolean permission, MapModeListener listener)
     {
 
         this.map = map;
         isCameraFollowing = false;
-        this.mainCntext = mainCntext;
-        myLocationButton = (FloatingActionButton)mainCntext.findViewById(R.id.b_my_location_button);
-        navigationExitButton =(FloatingActionButton)mainCntext.findViewById(R.id.b_naviagtion_exit_button);
+        this.mainContext = mainContext;
         this.modeListener = listener;
         setPermission(permission);
         map.getUiSettings().setMapToolbarEnabled(false);
@@ -92,8 +84,7 @@ public class MapController implements MapRouteListener {
         map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                getInfoDialog((PoI) marker.getTag());
-                cache_dialog.show();
+                showInfoDialog((PoI) marker.getTag());
                 return false;
             }
         });
@@ -106,32 +97,25 @@ public class MapController implements MapRouteListener {
         enterNormalMode();
     }
 
-    private void getInfoDialog(PoI thisPoI)
+    private void showInfoDialog(PoI thisPoI)
     {
-        cache_dialog = InfoViewFactory.getInfoDialog(mainCntext,thisPoI,this);
+        cache_dialog = DialogFactory.getInfoDialog(mainContext,thisPoI,this);
+        cache_dialog.show();
     }
 
-
-    /**
-     * This method is used to setup the listener on my location button
-     */
-    private void setupMyLocationButton()
+    public View.OnClickListener getMyLocationListener()
     {
-        myLocationButton.setOnClickListener(new View.OnClickListener() {
+        return myLocationButtonListener;
+    }
+
+    public View.OnClickListener getNavigationExitListener()
+    {
+        return new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                if (curLocation != null) {
-                    if (mode == MODE.NORMAL)
-                       moveCamera(normalCamera);
-                    else {
-                        if(navigationCamera!=null)
-                        moveCamera(navigationCamera);
-                    }
-                }
-                isCameraFollowing = true;
+                exitNavigationMode();
             }
-        });
+        };
     }
 
     /**
@@ -166,13 +150,25 @@ public class MapController implements MapRouteListener {
         try{
             if(locationPermission)
             {
+                myLocationButtonListener =  new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+
+                        if (curLocation != null) {
+                            if (mode == MODE.NORMAL)
+                                moveCamera(normalCamera);
+                            else {
+                                if(navigationCamera!=null)
+                                    moveCamera(navigationCamera);
+                            }
+                        }
+                        isCameraFollowing = true;
+                    }
+                };
                 map.setMyLocationEnabled(true);
-                myLocationButton.setVisibility(View.VISIBLE);
-                setupMyLocationButton();
             }
             else {
                 map.setMyLocationEnabled(false);
-                myLocationButton.setVisibility(View.GONE);
             }
             }
             catch (SecurityException e) {
@@ -196,7 +192,6 @@ public class MapController implements MapRouteListener {
      */
     private void enterNormalMode()
     {
-        navigationExitButton.setVisibility(View.GONE);
         changeMode(MODE.NORMAL);
         //if there is no current position available, point to the center of cal poly pomona
         if(curLocation==null)
@@ -224,13 +219,6 @@ public class MapController implements MapRouteListener {
                         position(destination).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET))));
 
             changeMode(MODE.NAVIGATION);
-            navigationExitButton.setVisibility(View.VISIBLE);
-            navigationExitButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    exitNavigationMode();
-                }
-            });
     }
 
     /**
@@ -253,7 +241,7 @@ public class MapController implements MapRouteListener {
      */
     private void failConnection()
     {
-        Toast.makeText(mainCntext,"Connection failed!", Toast.LENGTH_LONG).show();
+        Toast.makeText(mainContext,"Connection failed!", Toast.LENGTH_LONG).show();
         exitNavigationMode();
     }
 
@@ -281,6 +269,26 @@ public class MapController implements MapRouteListener {
                 }
             }
         }
+    }
+
+    public void findOneMarker(final PoI poi)
+    {
+        cache_PoIList = new ArrayList<>();
+        cache_PoIList.add(poi);
+        changeMarkersOnMap(cache_PoIList);
+        map.animateCamera(CameraUpdateFactory.newLatLng(poi.getLocation()), new GoogleMap.CancelableCallback() {
+            @Override
+            public void onFinish() {
+                showInfoDialog(poi);
+            }
+
+            @Override
+            public void onCancel() {
+
+            }
+        });
+
+
     }
 
     /**
@@ -336,7 +344,7 @@ public class MapController implements MapRouteListener {
                 }
                 //the destination is arrived, need to exit the navigation mode
                 if(arrive_dest) {
-                    Toast.makeText(mainCntext,"You've arrived!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(mainContext,"You've arrived!", Toast.LENGTH_LONG).show();
                     exitNavigationMode();
                     return;
                 }

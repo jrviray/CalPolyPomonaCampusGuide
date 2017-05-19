@@ -8,14 +8,14 @@ import com.google.android.gms.maps.model.LatLng;
 
 public class ParkingLot extends PoI {
 
-    private String parkingLotNum;
+    private String parkingLotName;
 
     private String availability;
 
 
     public ParkingLot(String parkingLotNum,String imageName, LatLng location, String description,String availability) {
         super(imageName, location, description);
-        this.parkingLotNum=parkingLotNum;
+        this.parkingLotName="Parking Lot "+parkingLotNum;
         this.availability = availability;
     }
 
@@ -23,7 +23,9 @@ public class ParkingLot extends PoI {
         return availability;
     }
 
-    public String getParkingLotNum() {
-        return parkingLotNum;
+    public String getParkingLotName() {
+        return parkingLotName;
     }
+
+
 }
